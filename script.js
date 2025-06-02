@@ -130,13 +130,13 @@ document.addEventListener('DOMContentLoaded', () => {
             last_name: document.getElementById('lastName').value,  
             email: document.getElementById('email').value,
             airline: document.getElementById('airline').value,
-            job_role: document.getElementById('jobRole').value, 
+            job_title: document.getElementById('jobRole').value, 
             agreed_to_terms: document.getElementById('agreement').checked, // Corrected ID
             signed_up_at: new Date().toISOString()
         };
 
         // Client-side validation for required fields
-        if (!formData.first_name || !formData.last_name || !formData.email || !formData.airline || !formData.job_role) {
+        if (!formData.first_name || !formData.last_name || !formData.email || !formData.airline || !formData.job_title) {
             formMessage.textContent = 'Please fill out all required fields (First Name, Last Name, Email, Airline, Job Role).';
             formMessage.className = 'form-message error';
             submitButton.disabled = false;
