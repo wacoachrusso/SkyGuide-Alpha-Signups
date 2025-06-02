@@ -126,7 +126,13 @@ serve(async (req: Request) => {
                   <td align="left" style="font-family: Arial, sans-serif; font-size: 16px; line-height: 24px; color: #333333; padding-bottom: 20px;">
                     <h1 style="font-size: 24px; font-weight: bold; color: #005A9C; margin: 0 0 15px 0;">Welcome to the SkyGuide Alpha Program!</h1>
                     <p style="margin: 0 0 15px 0;">Hi ${userFirstName},</p>
-                    <p style="margin: 0 0 15px 0;">Thank you for signing up to be an Alpha Tester for SkyGuide! We're thrilled to have you on board and appreciate your interest in helping us shape the future of contract navigation for aviation professionals.</p>
+                    <p style="margin: 0 0 15px 0;">Thank you for signing up for the SkyGuide Alpha Testers program! We're thrilled to have you on board.</p>
+                    <p style="margin-top: 20px; margin-bottom: 10px; font-weight: bold;">Your submitted details:</p>
+                    <ul style="list-style-type: none; padding-left: 0; margin-bottom: 20px;">
+                      ${signupData.airline ? `<li style="margin-bottom: 5px;"><strong>Airline:</strong> ${signupData.airline}</li>` : ''}
+                      ${signupData.job_title ? `<li style="margin-bottom: 5px;"><strong>Job Title:</strong> ${signupData.job_title}</li>` : ''}
+                    </ul>
+                    <p>Your journey to revolutionizing flight operations starts here. We'll be in touch soon with more details and next steps.</p>
                     <p style="margin: 0 0 15px 0;">You're all set for now. We'll be in touch soon with more details and instructions on how to get started.</p>
                     <p style="margin: 0 0 25px 0;">In the meantime, please add <code>${RESEND_FROM_EMAIL}</code> to your email contacts or safe sender list to ensure you receive all our communications.</p>
                     <p style="margin: 0;">Best regards,</p>
