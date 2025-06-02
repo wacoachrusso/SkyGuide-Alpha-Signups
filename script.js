@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Validate job role for selected airline again (client-side)
         const allowedRoles = airlineJobRoles[formData.airline];
-        if (!allowedRoles || !allowedRoles.includes(formData.job_role)) {
+        if (!allowedRoles || !allowedRoles.includes(formData.job_title)) {
             formMessage.textContent = 'Invalid job role for the selected airline. Please check your selection.';
             formMessage.className = 'form-message error';
             submitButton.disabled = false;
