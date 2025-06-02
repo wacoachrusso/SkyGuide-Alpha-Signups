@@ -1,0 +1,526 @@
+/* General Styles */
+body {
+    font-family: 'Roboto', sans-serif;
+    line-height: 1.75;
+    margin: 0;
+    padding: 0;
+    background-color: #F0F2F5; /* Fallback color */
+    background-image: linear-gradient(to bottom right, #E9ECEF, #F8F9FA);
+    color: #343A40;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+}
+
+.container {
+    width: 90%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+h1, h2, h3, h4 {
+    font-family: 'Montserrat', sans-serif;
+    color: #0D1B2A; /* Very dark blue for headings */
+    margin-bottom: 0.8em;
+}
+
+h1 {
+    font-size: 3.5em; /* Further increased size for impact */
+    font-weight: 700;
+    line-height: 1.15;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.15);
+    margin-bottom: 0.6em;
+}
+
+h2 {
+    font-size: 2.8em; /* Further increased size */
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 1.3em; /* More space below */
+    letter-spacing: -0.5px;
+}
+
+h3 {
+    font-size: 2.2em; /* Further increased size */
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 1em;
+}
+
+/* Spam Notice Styling */
+.spam-notice {
+    font-size: 0.85em;
+    color: #777;
+    margin-top: 10px;
+    text-align: center;
+}
+
+.spam-notice code {
+    background-color: #f0f0f0;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: monospace;
+}
+
+/* Limit Reached Message Styling */
+#limitReachedMessageContainer {
+    /* Styles for the message can be added here, e.g., padding, background */
+    padding: 40px 20px;
+    background-color: #e9ecef; /* A light, distinct background */
+    border-radius: 8px;
+    margin-top: 30px;
+}
+
+#limitReachedMessageContainer h2 {
+    color: #0D1B2A; /* Dark blue, consistent with other h2s */
+    margin-bottom: 15px;
+}
+
+#limitReachedMessageContainer p {
+    font-size: 1.1em;
+    color: #343A40; /* Dark grey for text */
+    line-height: 1.6;
+}
+
+p {
+    margin-bottom: 1em;
+    font-size: 1.1em;
+}
+
+ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+ul li {
+    background-color: #FFFFFF;
+    padding: 20px 25px;
+    margin-bottom: 18px; /* More spacing between features */
+    border-radius: 10px; /* Softer radius */
+    border-left: 6px solid #C6A668;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06); /* Softer, more diffused shadow */
+    transition: transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative; /* For pseudo-elements if needed later */
+}
+
+ul li:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.09);
+}
+
+/* Adding a small visual cue to list items */
+ul li::before {
+    content: '\2708'; /* Airplane character or other suitable icon */
+    color: #C6A668;
+    font-size: 1.2em;
+    margin-right: 12px;
+    vertical-align: middle;
+}
+
+strong {
+    font-weight: 700;
+}
+
+/* Header */
+header {
+    background-color: #0D1B2A; /* Very Dark Blue */
+    color: #fff;
+    padding: 1em 0; /* Slightly more padding */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    position: sticky; /* Make header sticky */
+    top: 0;
+    z-index: 100;
+    width: 100%;
+}
+
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-tagline {
+    font-size: 1.1em; /* Slightly larger tagline */
+    font-style: italic;
+    color: #E0E7EF; /* Lighter color for tagline against dark bg */
+    font-weight: 300;
+}
+
+.logo-placeholder {
+    font-size: 1.8em;
+    font-weight: bold;
+    padding: 10px 0;
+    /* Styles for the actual logo image */
+}
+
+.logo {
+    height: 75px;
+    width: auto;
+    max-width: 240px;
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.logo:hover {
+    transform: scale(1.03) rotate(-2deg); /* Subtle playful hover */
+}
+
+/* Hero Section */
+#hero {
+    background: linear-gradient(rgba(13, 27, 42, 0.90), rgba(13, 27, 42, 0.82)), url('https://images.unsplash.com/photo-1500100913980-3f1233641900?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wzNjAzNTV8MHwxfGFsbHx8fHx8fHx8fDE2ODU4MzY3ODN8&ixlib=rb-4.0.3&q=80&w=1080');
+    background-size: cover;
+    background-position: center center;
+    background-attachment: fixed;
+    color: #fff;
+    padding: 7em 0; /* Even more padding */
+    text-align: center;
+    margin-top: 0;
+    position: relative; /* For potential pseudo-elements or overlays */
+}
+
+#hero h1, #hero .intro-paragraph {
+    animation: fadeInSlideUp 0.8s 0.2s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+    opacity: 0;
+}
+
+#hero .intro-paragraph {
+    animation-delay: 0.4s; /* Stagger animation */
+}
+
+#hero h1 {
+    color: #fff;
+    margin-bottom: 0.5em;
+}
+
+#hero .intro-paragraph {
+    font-size: 1.35em; /* Slightly larger */
+    max-width: 780px;
+    margin: 1.2em auto 2.5em auto;
+    font-weight: 300;
+    line-height: 1.85;
+}
+
+/* What is SkyGuide Section */
+#what-is-skyguide,
+#signup-form-section,
+#notes-eligibility {
+    padding: 4em 0; /* Increased padding for all main sections */
+}
+
+/* Styles for the signup form area */
+#signupFormContainer {
+    background-color: #FFFFFF;
+    padding: 2.5em; /* Generous padding inside the form box */
+    border-radius: 12px; /* Softer, modern rounded corners */
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); /* Subtle shadow for depth */
+    margin-top: 1.5em; /* Space between the heading and the form box */
+    transition: box-shadow 0.3s ease-in-out;
+}
+
+#signupFormContainer:hover {
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.1); /* Slightly more pronounced shadow on hover */
+}
+
+/* Style for the 'Become an Alpha Tester' heading above the form */
+#signup-form-section .container > h3 {
+    text-align: center;
+    margin-bottom: 1em; /* Space below the heading */
+    color: #005A9C; /* A professional blue, adjust if SkyGuide has a specific brand blue */
+    font-size: 2.2em; /* Make it prominent */
+    font-weight: 600; /* Clear and strong */
+}
+
+#what-is-skyguide {
+    background-color: #FFFFFF; /* Keep white for readability */
+}
+
+.skyguide-info {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: left;
+    background-color: #FFFFFF; /* White for better contrast with page bg */
+    padding: 2.5em; /* More padding */
+    border-radius: 12px; /* Softer radius */
+    box-shadow: 0 6px 20px rgba(0,0,0,0.07); /* Softer, more diffused shadow */
+}
+
+.skyguide-info p:last-child {
+    margin-bottom: 0; /* Remove bottom margin from last paragraph */
+}
+
+.stay-tuned-callout {
+    display: block;
+    background-color: #fff3cd; /* Light gold/yellow background */
+    color: #856404; /* Dark gold/brown text */
+    padding: 1em 1.5em;
+    margin-top: 1.5em;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 600;
+    border: 1px solid #ffeeba;
+}
+
+.skyguide-info p {
+    margin-bottom: 1.2em;
+}
+
+/* Signup Form Section */
+#signup-form-section {
+    padding: 3em 0;
+    background-color: #E0E7EF; /* Light grey-blue, complementing dark theme */
+}
+
+#alphaSignupForm {
+    max-width: 600px;
+    margin: 1.5em auto 0 auto; /* More top margin */
+    background-color: #fff;
+    padding: 3em; /* Even more padding */
+    border-radius: 16px; /* Even softer radius */
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1); /* Refined shadow */
+    border: 1px solid #E0E7EF; /* Subtle border */
+}
+
+.form-group {
+    margin-bottom: 1.5em;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5em;
+    font-weight: 700;
+    color: #0D1B2A;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group select {
+    width: 100%;
+    padding: 1.1em; /* Slightly more padding */
+    border: 1px solid #D1D5DB; /* Slightly lighter border */
+    border-radius: 8px; /* Softer radius */
+    box-sizing: border-box;
+    font-size: 1em;
+    color: #343A40;
+    background-color: #F8F9FA; /* Light background for inputs */
+    transition: border-color 0.25s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.form-group input::placeholder, .form-group select {
+    color: #6C757D; /* Placeholder text color */
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: #C6A668;
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(198, 166, 104, .35);
+}
+
+.form-group select[disabled] {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+}
+
+.checkbox-group input[type="checkbox"] {
+    margin-right: 0.7em;
+    width: auto;
+    transform: scale(1.2);
+}
+
+.checkbox-group label {
+    margin-bottom: 0;
+    font-weight: normal;
+    color: #333;
+}
+
+button[type="submit"] {
+    display: block;
+    width: 100%;
+    padding: 1.25em; /* Refined padding */
+    background-image: linear-gradient(to right, #D4AF7A 0%, #C6A668 50%, #D4AF7A 100%); /* Subtle gold gradient */
+    background-size: 200% auto;
+    color: #0D1B2A;
+    border: none;
+    border-radius: 8px; /* Softer radius */
+    font-size: 1.2em;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.8px; /* More spacing */
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 4px 15px rgba(198, 166, 104, 0.3);
+}
+
+button[type="submit"]:hover {
+    background-position: right center; /* Change gradient direction */
+    color: #000000;
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 6px 20px rgba(198, 166, 104, 0.45);
+}
+
+button[type="submit"]:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.form-message {
+    margin-top: 1em;
+    text-align: center;
+    font-weight: bold;
+}
+
+.form-message.success {
+    color: green;
+}
+
+.form-message.error {
+    color: red;
+}
+
+/* Notes & Eligibility Section */
+#notes-eligibility {
+    background-color: #FFFFFF;
+}
+
+#notes-eligibility h4 {
+    font-size: 1.5em;
+    color: #0D1B2A; /* Dark blue for these subheadings */
+    margin-top: 1.5em;
+}
+
+/* Footer */
+footer {
+    background-color: #0D1B2A; /* Very Dark Blue */
+    color: #F8F9FA; /* Light text on dark background */
+    text-align: center;
+    padding: 2em 0;
+    font-size: 0.9em;
+}
+
+footer p {
+    margin-bottom: 0.5em;
+}
+
+/* Modal (Thank You Popup) */
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 1000; 
+    left: 0;
+    top: 0;
+    width: 100%; 
+    height: 100%; 
+    overflow: auto; 
+    background-color: rgba(0,0,0,0.6); 
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 15% auto; 
+    padding: 30px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 500px;
+    border-radius: 8px;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.modal-content h2 {
+    color: #C6A668; /* Gold for modal heading */
+    margin-top: 0;
+}
+
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Scroll Animations */
+.animate-on-scroll {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.animate-on-scroll.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Keyframes for hero text animation */
+@keyframes fadeInSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2.2em;
+    }
+    h2 {
+        font-size: 1.8em;
+    }
+    .container {
+        width: 95%;
+    }
+    #hero {
+        padding: 3em 0;
+    }
+    .skyguide-info p, #hero .intro-paragraph {
+        font-size: 1em;
+    }
+    #alphaSignupForm {
+        padding: 1.5em;
+    }
+    .modal-content {
+        width: 90%;
+        margin: 20% auto;
+    }
+}
+
+@media (max-width: 480px) {
+    h1 {
+        font-size: 1.8em;
+    }
+    h2 {
+        font-size: 1.5em;
+    }
+    .form-group input[type="text"],
+    .form-group input[type="email"],
+    .form-group select {
+        font-size: 0.9em;
+    }
+    button[type="submit"] {
+        font-size: 1em;
+    }
+    .checkbox-group label {
+        font-size: 0.9em;
+    }
+}

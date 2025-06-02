@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyGuide Alpha Signup</title>
+    <link rel="icon" href="assets/favicon.png" type="image/png">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="container header-container">
+            <img src="assets/transparent logo.png" alt="SkyGuide Logo" class="logo">
+            <span class="header-tagline">Navigate your contract confidently.</span>
+        </div>
+    </header>
+
+    <main>
+        <section id="hero">
+            <div class="container">
+                <h1>Sign Up as an Alpha Tester – Get SkyGuide Free for 1 Year!</h1>
+                <p class="intro-paragraph">
+                    This exclusive opportunity is for flight attendants and pilots who are passionate about shaping the future of aviation tools. As an alpha tester, you'll help promote SkyGuide and provide valuable feedback every two weeks via email. The app is scheduled to go live around the <strong>end of July or beginning of August</strong>.
+                </p>
+            </div>
+        </section>
+
+        <section id="what-is-skyguide" class="animate-on-scroll">
+            <div class="container">
+                <h2>What is SkyGuide and Why is it a Game-Changer for Flight Crews?</h2>
+                <div class="skyguide-info">
+                    <p>SkyGuide is a <strong>revolutionary contract assistant</strong> meticulously designed for flight attendants and pilots. Tired of sifting through dense contract documents? SkyGuide provides <strong>instant answers</strong> to your urgent contract questions, clarifying complex work rules, rest requirements, pay calculations, and much more – <strong>instantly and accurately</strong>.</p>
+                    <p>Our intelligent system includes <strong>direct references to actual contract language</strong>, ensuring you get precise and trustworthy information right when you need it. </p>
+                    <p>Initially tailored for:</p>
+                    <ul>
+                        <li>United Airlines pilots and flight attendants</li>
+                        <li>Alaska Airlines flight attendants</li>
+                        <li>American Airlines pilots and flight attendants</li>
+                        <li>Delta Airlines pilots</li>
+                    </ul>
+                    <p class="stay-tuned-callout">More airlines are on the horizon – <strong>stay tuned</strong> as we expand!</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="signup-form-section" class="animate-on-scroll">
+            <div class="container">
+                <h3>Become an Alpha Tester</h3>
+                <div id="signupFormContainer">
+                    <form id="alphaSignupForm">
+                        <div class="form-group">
+                            <label for="firstName">First Name</label>
+                            <input type="text" id="firstName" name="firstName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="lastName">Last Name</label>
+                            <input type="text" id="lastName" name="lastName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="airline">Airline</label>
+                            <select id="airline" name="airline" required>
+                                <option value="">Select your airline</option>
+                                <option value="United Airlines">United Airlines</option>
+                                <option value="Alaska Airlines">Alaska Airlines</option>
+                                <option value="American Airlines">American Airlines</option>
+                                <option value="Delta Airlines">Delta Airlines</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="jobRole">Job Role</label>
+                            <select id="jobRole" name="jobRole" required disabled>
+                                <option value="">Select your job role</option>
+                                <!-- Options will be populated by JavaScript -->
+                            </select>
+                        </div>
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="agreement" name="agreement" required>
+                            <label for="agreement">I agree to provide feedback every two weeks and help promote the SkyGuide app.</label>
+                        </div>
+                        <button type="submit" id="submitButton">Sign Up Now</button>
+                        <p id="formMessage" class="form-message"></p>
+                        <p class="spam-notice">
+                            Didn't receive a confirmation email? Please check your spam or junk folder and add 
+                            <code>alpha@skyguide.site</code> to your safe sender list.
+                        </p>
+                    </form>
+                </div>
+                <div id="limitReachedMessageContainer" style="display: none; text-align: center;">
+                    <h2>Thank You for Your Interest!</h2>
+                    <p>We have reached our maximum number of alpha testers for this phase. We appreciate your enthusiasm and encourage you to stay tuned for future updates and opportunities to join SkyGuide. Follow our journey for more news!</p>
+                </div>
+
+            </div>
+        </section>
+
+        <section id="notes-eligibility" class="animate-on-scroll">
+            <div class="container">
+                <h4>Important Notes for Testers:</h4>
+                <p>Every two weeks, you’ll receive an automated email from <strong>Resend</strong> with a short questionnaire to gather your valuable insights. After confirming your participation by signing up, you’ll get <strong>further instructions</strong> as soon as the app is ready for testing!</p>
+                
+                <h4>Eligibility:</h4>
+                <p>Currently, alpha tester sign-ups are exclusively for:</p>
+                <ul>
+                    <li>United Airlines: Pilots and Flight Attendants</li>
+                    <li>Alaska Airlines: Flight Attendants</li>
+                    <li>American Airlines: Pilots and Flight Attendants</li>
+                    <li>Delta Airlines: Pilots</li>
+                </ul>
+                <p class="stay-tuned-callout">We're working hard to bring SkyGuide to more airlines soon – <strong>stay tuned</strong>!</p>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; <span id="currentYear"></span> SkyGuide. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <div id="thankYouModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Thank You for Signing Up!</h2>
+            <p>Your participation as a SkyGuide Alpha Tester is confirmed!</p>
+            <p>We're thrilled to have you on board. You'll receive further instructions and updates from us soon as we get closer to the app launch.</p>
+            <p>Welcome to the SkyGuide crew!</p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+    </script>
+    <!-- Supabase CDN (replace with your actual Supabase client setup if preferred locally) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js"></script>
+</body>
+</html>
