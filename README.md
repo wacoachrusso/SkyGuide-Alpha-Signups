@@ -46,7 +46,7 @@ Supabase will be used to store signup data and manage the 350 tester limit secur
      - `lastName` (text)
      - `email` (text, consider enabling `isUnique` if emails must be unique)
      - `airline` (text)
-     - `jobRole` (text)
+    - `job_title` (text)
      - `agreedToTerms` (boolean)
      - `signedUpAt` (timestamp with timezone) - *This is from the client, `created_at` is server time.*
    - Ensure Row Level Security (RLS) is enabled for this table. Initially, you might keep it permissive for function access and then tighten it.

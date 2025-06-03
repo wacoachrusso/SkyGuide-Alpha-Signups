@@ -27,7 +27,7 @@ serve(async (req: Request) => {
     const signupData = await req.json()
 
     // Validate required fields
-    if (!signupData.email || !signupData.first_name || !signupData.last_name || !signupData.airline || !signupData.job_role) {
+  if (!signupData.email || !signupData.first_name || !signupData.last_name || !signupData.airline || !signupData.job_title) {
       return new Response(JSON.stringify({ success: false, error: true, message: 'Missing required fields.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
@@ -62,7 +62,7 @@ serve(async (req: Request) => {
         last_name: signupData.last_name,
         email: signupData.email,
         airline: signupData.airline,
-        job_role: signupData.job_role,
+        job_title: signupData.job_title,
         agreed_to_terms: signupData.agreed_to_terms,
         // signed_up_at is handled by default value in DB or can be set here
       })
