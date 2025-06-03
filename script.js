@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
             last_name: document.getElementById('lastName').value,  
             email: document.getElementById('email').value,
             airline: document.getElementById('airline').value,
-            job_title: document.getElementById('jobRole').value, 
+            job_title: document.getElementById('jobRole').value,
             agreed_to_terms: document.getElementById('agreement').checked, // Corrected ID
             signed_up_at: new Date().toISOString()
         };
