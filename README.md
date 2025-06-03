@@ -6,6 +6,8 @@ This project contains the files for the SkyGuide Alpha Tester signup landing pag
 
 - `index.html`: The main HTML file for the landing page.
 - `style.css`: CSS styles for the page.
+- `admin.html`: Simple admin console for viewing signups and sending mass emails.
+- `admin.js`: JavaScript for the admin console.
 - `script.js`: JavaScript for form handling, dynamic content, and Supabase integration.
 - `README.md`: This file, containing setup and deployment instructions.
 
@@ -296,4 +298,5 @@ Once your site is deployed and you have a URL from Netlify/Render:
 - **Error Handling:** The `script.js` includes basic error handling. Enhance as needed.
 - **Mobile Responsiveness:** The `style.css` includes basic media queries. Test thoroughly on different devices and refine.
 
+- The admin console (`admin.html`) lets you view all signups and send mass emails via the `send_mass_email` edge function.
 Good luck with your alpha testing program!

@@ -78,6 +78,10 @@
                                 <!-- Options will be populated by JavaScript -->
                             </select>
                         </div>
+                        <div class="form-group">
+                            <label for="base">Base</label>
+                            <input type="text" id="base" name="base" required>
+                        </div>
                         <div class="form-group checkbox-group">
                             <input type="checkbox" id="agreement" name="agreement" required>
                             <label for="agreement">I agree to provide feedback every two weeks and help promote the SkyGuide app.</label>
@@ -129,6 +133,23 @@
             <p>Your participation as a SkyGuide Alpha Tester is confirmed!</p>
             <p>We're thrilled to have you on board. You'll receive further instructions and updates from us soon as we get closer to the app launch.</p>
             <p>Welcome to the SkyGuide crew!</p>
+        </div>
+    </div>
+    <div id="disclaimerModal" class="modal">
+        <div class="modal-content">
+            <h2>Important Disclaimer</h2>
+            <p>Please read carefully before proceeding.</p>
+            <p><strong>Legal Notice:</strong> SkyGuide is a digital tool designed to help users interpret the language in their union contracts. It is not an official union resource, legal advisor, or substitute for professional guidance.</p>
+            <p><strong>Key Points:</strong></p>
+            <ul>
+                <li>Informational Purpose Only: The app provides interpretive assistance and is not a definitive legal resource.</li>
+                <li>No Guarantee of Accuracy: While we strive for precision, SkyGuide does not guarantee the completeness or current status of contract information.</li>
+                <li>Professional Consultation: Always consult your union representatives, official contract documents, or legal professionals before taking action.</li>
+                <li>User Responsibility: You are solely responsible for verifying any interpretations or decisions made using this tool.</li>
+                <li>User Declaration: By signing up, you confirm that you are an actively working pilot or flight attendant employed by the airline you selected in the sign-up form. You acknowledge that you are not misrepresenting your employment status and that you understand SkyGuide is intended solely for pilots and flight attendants who are currently working for the airline indicated.</li>
+            </ul>
+            <p><strong>Limitation of Liability:</strong><br>SkyGuide and its creators are not liable for any errors, omissions, or outcomes resulting from the use of this platform. By using this app, you acknowledge and agree to use it at your own risk.</p>
+            <button id="disclaimerAcknowledgeButton">I Understand</button>
         </div>
     </div>
 
