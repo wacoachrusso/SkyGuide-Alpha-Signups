@@ -2,10 +2,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const airlineSelect = document.getElementById('airline');
     const jobRoleSelect = document.getElementById('jobRole');
     const signupForm = document.getElementById('alphaSignupForm');
+    const baseInput = document.getElementById("base");
     const formMessage = document.getElementById('formMessage');
     const submitButton = document.getElementById('submitButton');
     const thankYouModal = document.getElementById('thankYouModal');
     const closeModalButton = document.querySelector('.modal .close-button');
+    const disclaimerModal = document.getElementById("disclaimerModal");
+    const disclaimerButton = document.getElementById("disclaimerAcknowledgeButton");
     const agreementCheckbox = document.getElementById('agreement');
     const signupFormContainer = document.getElementById('signupFormContainer');
     const limitReachedMessageContainer = document.getElementById('limitReachedMessageContainer');
@@ -130,14 +133,15 @@ document.addEventListener('DOMContentLoaded', () => {
             last_name: document.getElementById('lastName').value,  
             email: document.getElementById('email').value,
             airline: document.getElementById('airline').value,
+            base: baseInput.value,
             job_title: document.getElementById('jobRole').value,
             agreed_to_terms: document.getElementById('agreement').checked, // Corrected ID
             signed_up_at: new Date().toISOString()
         };
 
         // Client-side validation for required fields
-        if (!formData.first_name || !formData.last_name || !formData.email || !formData.airline || !formData.job_title) {
-            formMessage.textContent = 'Please fill out all required fields (First Name, Last Name, Email, Airline, Job Role).';
+        if (!formData.first_name || !formData.last_name || !formData.email || !formData.airline || !formData.base || !formData.job_title) {
+            formMessage.textContent = "Please fill out all required fields (First Name, Last Name, Email, Airline, Base, Job Role).";
             formMessage.className = 'form-message error';
             submitButton.disabled = false;
             submitButton.textContent = 'Sign Up Now';
@@ -237,15 +241,25 @@ document.addEventListener('DOMContentLoaded', () => {
     function showThankYouModal() {
         thankYouModal.style.display = 'block';
     }
-
-    closeModalButton.addEventListener('click', () => {
-        thankYouModal.style.display = 'none';
+function showDisclaimerModal() {
+        disclaimerModal.style.display = "block";
+    }
+    closeModalButton.addEventListener("click", () => {
+        thankYouModal.style.display = "none";
+        showDisclaimerModal();
     });
 
-    window.addEventListener('click', (event) => {
+    window.addEventListener("click", (event) => {
         if (event.target === thankYouModal) {
-            thankYouModal.style.display = 'none';
+            thankYouModal.style.display = "none";
+            showDisclaimerModal();
+        } else if (event.target === disclaimerModal) {
+            disclaimerModal.style.display = "none";
         }
+    });
+
+    disclaimerButton.addEventListener("click", () => {
+        disclaimerModal.style.display = "none";
     });
 
     // Scroll Animation Logic
@@ -254,8 +268,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const elementInView = (el, percentageScroll = 100) => {
         const elementTop = el.getBoundingClientRect().top;
         return (
-            elementTop <= 
-            ((window.innerHeight || document.documentElement.clientHeight) * (percentageScroll/100))
+            elementTop <=
+            ((window.innerHeight || document.documentElement.clientHeight) * (percentageScroll / 100))
         );
     };
 
@@ -271,9 +285,9 @@ document.addEventListener('DOMContentLoaded', () => {
         scrollElements.forEach((el) => {
             if (elementInView(el, 80)) { // Trigger when 80% of the element is in view
                 displayScrollElement(el);
-            } 
+            }
             // Optional: to hide elements again when they scroll out of view from the top
-            // else if (!elementInView(el, 0)) { 
+            // else if (!elementInView(el, 0)) {
             //     hideScrollElement(el)
             // }
         })
