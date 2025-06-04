@@ -264,3 +264,39 @@ function showDisclaimerModal() {
 
     // Scroll Animation Logic
     const scrollElements = document.querySelectorAll('.animate-on-scroll');
+
+    const elementInView = (el, percentageScroll = 100) => {
+        const elementTop = el.getBoundingClientRect().top;
+        return (
+            elementTop <=
+            ((window.innerHeight || document.documentElement.clientHeight) * (percentageScroll / 100))
+        );
+    };
+
+    const displayScrollElement = (element) => {
+        element.classList.add('is-visible');
+    };
+
+    const hideScrollElement = (element) => {
+        element.classList.remove('is-visible');
+    };
+
+    const handleScrollAnimation = () => {
+        scrollElements.forEach((el) => {
+            if (elementInView(el, 80)) { // Trigger when 80% of the element is in view
+                displayScrollElement(el);
+            }
+            // Optional: to hide elements again when they scroll out of view from the top
+            // else if (!elementInView(el, 0)) {
+            //     hideScrollElement(el)
+            // }
+        })
+    }
+
+    // Initial check in case elements are already in view on page load
+    handleScrollAnimation();
+    window.addEventListener('scroll', () => {
+        handleScrollAnimation();
+    });
+
+});
