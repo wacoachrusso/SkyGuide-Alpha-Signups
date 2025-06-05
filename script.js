@@ -133,15 +133,15 @@ document.addEventListener('DOMContentLoaded', () => {
             last_name: document.getElementById('lastName').value,  
             email: document.getElementById('email').value,
             airline: document.getElementById('airline').value,
-            base: baseInput.value,
-            job_title: document.getElementById('jobRole').value,
+            job_title: document.getElementById('jobRole').value, 
+            crew_base: document.getElementById('crewBase').value, // Added crew base
             agreed_to_terms: document.getElementById('agreement').checked, // Corrected ID
             signed_up_at: new Date().toISOString()
         };
 
         // Client-side validation for required fields
-        if (!formData.first_name || !formData.last_name || !formData.email || !formData.airline || !formData.base || !formData.job_title) {
-            formMessage.textContent = "Please fill out all required fields (First Name, Last Name, Email, Airline, Base, Job Role).";
+        if (!formData.first_name || !formData.last_name || !formData.email || !formData.airline || !formData.job_title || !formData.crew_base) {
+            formMessage.textContent = 'Please fill out all required fields (First Name, Last Name, Email, Airline, Job Role, Crew Base).';
             formMessage.className = 'form-message error';
             submitButton.disabled = false;
             submitButton.textContent = 'Sign Up Now';

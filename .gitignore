@@ -1,0 +1,8 @@
+# Supabase CLI executable
+supabase.exe
+
+# Optional: Add other common files/folders to ignore
+# .DS_Store
+# node_modules/
+# .env
+# *.log
