@@ -1,0 +1,12 @@
+[functions]
+  directory = "netlify/functions/"
+
+[[redirects]]
+  from = "/admin"
+  to = "/.netlify/functions/admin-auth"
+  status = 200 # Serve the function's response directly
+
+[[redirects]]
+  from = "/admin/*"
+  to = "/.netlify/functions/admin-auth"
+  status = 200 # Serve the function's response directly
