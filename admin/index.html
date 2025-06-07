@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyGuide Admin Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f7f6; color: #333; }
+        .container { max-width: 1200px; margin: 20px auto; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1, h2 { color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom: 10px; }
+        nav { background-color: #004080; padding: 10px 0; margin-bottom: 20px; }
+        nav ul { list-style-type: none; padding: 0; margin: 0; text-align: center; }
+        nav ul li { display: inline; margin-right: 20px; }
+        nav ul li a { color: white; text-decoration: none; font-weight: bold; padding: 10px 15px; border-radius: 4px; transition: background-color 0.3s; }
+        nav ul li a:hover, nav ul li a.active { background-color: #0056b3; }
+        .section { margin-bottom: 30px; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px; background-color: #fdfdfd; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 0.9em; }
+        th { background-color: #e9ecef; color: #333; font-weight: bold; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        tr:hover { background-color: #f1f1f1; }
+        #userCount { font-weight: bold; color: #0056b3; }
+        /* Styles for mass email form (can be refined from admin_mass_email.html) */
+        label { display: block; margin-top: 15px; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="password"], textarea {
+            width: calc(100% - 22px); /* Account for padding and border */
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea { min-height: 150px; resize: vertical; }
+        button {
+            background-color: #007bff; color: white; padding: 10px 20px;
+            border: none; border-radius: 4px; cursor: pointer; font-size: 16px;
+        }
+        button:hover { background-color: #0056b3; }
+        #responseArea { margin-top: 20px; padding: 15px; border-radius: 4px; background-color: #e9ecef; border: 1px solid #ced4da; white-space: pre-wrap; word-wrap: break-word; }
+        .error { color: red; font-weight: bold; }
+        .success { color: green; font-weight: bold; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SkyGuide Admin Dashboard</h1>
+
+        <nav>
+            <ul>
+                <li><a href="#usersSection" class="tab-link active" onclick="showTab('usersSection')">View Signups</a></li>
+                <li><a href="#emailSection" class="tab-link" onclick="showTab('emailSection')">Send Mass Email</a></li>
+            </ul>
+        </nav>
+
+        <div id="usersSection" class="section tab-content">
+            <h2>Alpha Tester Signups (<span id="userCount">0</span>)</h2>
+            <div style="overflow-x:auto;">
+                <table id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Signed Up At</th>
+                            <th>First Name</th>
+                            <th>Last Name</th>
+                            <th>Email</th>
+                            <th>Airline</th>
+                            <th>Job Title</th>
+                            <th>Crew Base</th>
+                            <th>Agreed to Terms</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <tr><td colspan="9" style="text-align:center;">Loading users...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="emailSection" class="section tab-content hidden">
+            <h2>Send Mass Email</h2>
+            <label for="secretKey">Mass Email Secret Key:</label>
+            <input type="password" id="secretKey" name="secretKey" value="v9NMOpAOg5">
+            <small>Enter the `MASS_EMAIL_SECRET_KEY` for authorization.</small>
+
+            <label for="subject">Email Subject:</label>
+            <input type="text" id="subject" name="subject" required>
+
+            <label for="htmlBody">HTML Body:</label>
+            <textarea id="htmlBody" name="htmlBody" required></textarea>
+            <small>Enter the full HTML content for the email.</small>
+
+            <label for="textBody">Text Body (Optional):</label>
+            <textarea id="textBody" name="textBody"></textarea>
+            <small>Enter the plain text version of the email. Recommended for compatibility.</small>
+
+            <button onclick="sendMassEmail()">Send Mass Email</button>
+
+            <h3>Response:</h3>
+            <div id="responseArea">Awaiting response...</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // --- Supabase Client Setup ---
+        const SUPABASE_URL = 'https://ulihpezvwculbmrddjfb.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsaWhwZXp2d2N1bGJtcmRkamZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzE2NTEsImV4cCI6MjA2NDQwNzY1MX0.hfxEN4-X9EJM9MnkYFjMjtWZyjXvKRMCWMIShp2infw';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // --- Tab Navigation ---
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+            document.querySelectorAll('.tab-link').forEach(link => link.classList.remove('active'));
+            document.querySelector(`a[href="#${tabId}"]`).classList.add('active');
+        }
+
+        // --- Fetch and Display Users ---
+        async function fetchAndDisplayUsers() {
+            const usersTableBody = document.getElementById('usersTableBody');
+            const userCountElement = document.getElementById('userCount');
+            usersTableBody.innerHTML = '<tr><td colspan="9" style="text-align:center;">Loading users...</td></tr>'; // Reset
+
+            try {
+                const { data: users, error } = await supabaseClient
+                    .from('alpha_signups')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('Error fetching users:', error);
+                    usersTableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:red;">Error fetching users: ${error.message}</td></tr>`;
+                    userCountElement.textContent = 'Error';
+                    return;
+                }
+
+                if (users && users.length > 0) {
+                    userCountElement.textContent = users.length;
+                    usersTableBody.innerHTML = users.map((user, index) => `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${user.created_at ? new Date(user.created_at).toLocaleString() : 'N/A'}</td>
+                            <td>${user.first_name || 'N/A'}</td>
+                            <td>${user.last_name || 'N/A'}</td>
+                            <td>${user.email || 'N/A'}</td>
+                            <td>${user.airline || 'N/A'}</td>
+                            <td>${user.job_title || 'N/A'}</td>
+                            <td>${user.crew_base || 'N/A'}</td>
+                            <td>${user.agreed_to_terms ? 'Yes' : 'No'}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    usersTableBody.innerHTML = '<tr><td colspan="9" style="text-align:center;">No users found.</td></tr>';
+                    userCountElement.textContent = '0';
+                }
+            } catch (e) {
+                console.error('Exception fetching users:', e);
+                usersTableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:red;">An unexpected error occurred.</td></tr>`;
+                userCountElement.textContent = 'Error';
+            }
+        }
+
+        // --- Mass Email Functionality ---
+        // const massEmailEdgeFunctionUrl = 'https://ulihpezvwculbmrddjfb.supabase.co/functions/v1/send_mass_email'; // Not needed with supabase.functions.invoke
+        async function sendMassEmail() {
+            const secretKey = document.getElementById('secretKey').value;
+            const subject = document.getElementById('subject').value;
+            const htmlBody = document.getElementById('htmlBody').value;
+            const textBody = document.getElementById('textBody').value;
+            const responseArea = document.getElementById('responseArea');
+
+            responseArea.textContent = 'Processing...';
+            responseArea.className = ''; // Reset class
+
+            if (!secretKey || !subject || !htmlBody) {
+                responseArea.textContent = 'Error: Secret Key, Subject, and HTML Body are required.';
+                responseArea.classList.add('error');
+                return;
+            }
+
+            const payload = {
+                secret_key: secretKey, // Add secret_key to the payload for the Edge Function to verify
+                subject: subject,
+                html_body: htmlBody,
+            };
+            if (textBody) {
+                payload.text_body = textBody;
+            }
+
+            try {
+                const { data, error } = await supabaseClient.functions.invoke('send_mass_email', {
+                    body: payload,
+                });
+
+                if (error) {
+                    console.error('Error invoking function:', error);
+                    responseArea.textContent = `Error (${error.status || 'Unknown'}):\n${error.message || JSON.stringify(error, null, 2)}`;
+                    responseArea.classList.remove('success');
+                    responseArea.classList.add('error');
+                    // Try to parse if error.context is a stringified JSON
+                    if (error.context && typeof error.context.json === 'function') {
+                        try {
+                            const errorDetails = await error.context.json();
+                            if (errorDetails && errorDetails.error) {
+                                responseArea.textContent += `\nDetails: ${errorDetails.error}`;
+                            }
+                        } catch (parseError) {
+                            console.warn('Could not parse error context as JSON:', parseError);
+                        }
+                    } else if (typeof error.context === 'string') {
+                         responseArea.textContent += `\nDetails: ${error.context}`;
+                    }
+                } else {
+                    console.log('Function invoked successfully:', data);
+                    responseArea.textContent = 'Mass email request sent successfully!\nCheck individual email status if needed.';
+                    if (data && data.message) { // If the function returns a specific success message
+                        responseArea.textContent = data.message;
+                    }
+                    responseArea.classList.remove('error');
+                    responseArea.classList.add('success');
+                }
+            } catch (e) {
+                console.error('Exception sending mass email:', e);
+                responseArea.textContent = `An unexpected error occurred: ${e.message}`;
+                responseArea.classList.remove('success');
+                responseArea.classList.add('error');
+            }
+        }
+
+        // --- Initial Load --- 
+        document.addEventListener('DOMContentLoaded', () => {
+            showTab('usersSection'); // Show users tab by default
+            fetchAndDisplayUsers();
+        });
+    </script>
+</body>
+</html>
