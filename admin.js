@@ -28,6 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const { data, error } = await supabase.from('alpha_signups').select('*'); // Temporarily removed order for debugging
         console.log('Supabase response data:', data);
         console.log('Supabase response error:', error);
+        if (data && data.length > 0) {
+            console.log('Raw signed_up_at for first record:', data[0].signed_up_at);
+        }
         if (error) {
             adminMessage.textContent = 'Error loading signups';
             adminMessage.className = 'form-message error';
