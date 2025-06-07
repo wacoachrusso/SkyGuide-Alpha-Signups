@@ -1,204 +1,186 @@
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { Resend } from 'https://esm.sh/resend@3.2.0'
-
-// CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*', // Adjust as needed for security
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
-
-// Environment variables
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
-const RESEND_FROM_EMAIL = Deno.env.get('RESEND_FROM_EMAIL')
-const MASS_EMAIL_SECRET_KEY = Deno.env.get('MASS_EMAIL_SECRET_KEY') // This is the one used in the actual check later
-
-// Initialize Supabase client (optional if not directly used, but good practice)
-let supabaseClient: SupabaseClient
-if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
-  supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-} else {
-  console.warn('Missing Supabase URL or Service Role Key environment variables. Supabase client not initialized.')
-}
-
-// Initialize Resend client
-let resend: Resend
-if (RESEND_API_KEY) {
-  resend = new Resend(RESEND_API_KEY)
-} else {
-  console.error('CRITICAL: Missing RESEND_API_KEY environment variable. Resend client not initialized.')
-}
-
-// --- HTML Email Template Function --- (This remains the same)
-const getFullHtmlContent = (subjectContent: string, bodyContent: string): string => {
-  const currentYear = new Date().getFullYear();
-  const logoUrl = "https://res.cloudinary.com/skyguide/image/upload/v1717789869/skyguide_logo_standard_resolution_color_trans_bkgd_x9x5k9.png";
-  
-  return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${subjectContent}</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; color: #333333; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-        .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        .header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #eeeeee; }
-        .header img { max-width: 200px; height: auto; margin-bottom: 15px; }
-        .content { padding: 20px 0; color: #333333; line-height: 1.6; font-size: 16px; }
-        .content h2 { color: #2c3e50; margin-top: 0; font-size: 1.5em; }
-        .footer { text-align: center; padding-top: 20px; border-top: 1px solid #eeeeee; font-size: 0.9em; color: #777777; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <img src="${logoUrl}" alt="SkyGuide Logo">
-            <h2>${subjectContent}</h2>
-        </div>
-        <div class="content">
-            ${bodyContent}
-        </div>
-        <div class="footer">
-            <p>&copy; ${currentYear} SkyGuide. All rights reserved.</p>
-            <!-- Consider adding an unsubscribe link mechanism if legally required or for best practice -->
-        </div>
-    </div>
-</body>
-</html>
-  `.trim();
-};
-
-serve(async (req: Request) => {
-  // --- TEMPORARY DEBUG LOGS ---
-  console.log('--- DEBUG START ---');
-  const receivedAuthHeader = req.headers.get('Authorization');
-  const expectedSecretKeyEnv = Deno.env.get('MASS_EMAIL_SECRET_KEY'); // Explicitly get it for logging
-  console.log('Received Authorization Header:', receivedAuthHeader);
-  console.log('Expected MASS_EMAIL_SECRET_KEY from env:', expectedSecretKeyEnv);
-  
-  if (expectedSecretKeyEnv && receivedAuthHeader) {
-    console.log('Comparison: `Bearer ${expectedSecretKeyEnv}` === receivedAuthHeader ?', `Bearer ${expectedSecretKeyEnv}` === receivedAuthHeader);
-  } else {
-    console.log('Comparison: One or both values for comparison are null/undefined.');
-  }
-  console.log('--- DEBUG END ---');
-  // --- END TEMPORARY DEBUG LOGS ---
-
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
-
-  try {
-    const authHeader = req.headers.get('Authorization') // Original line for the actual check
-    // The MASS_EMAIL_SECRET_KEY used here is the one defined at the top of the script from Deno.env.get()
-    if (!authHeader || !MASS_EMAIL_SECRET_KEY || authHeader !== `Bearer ${MASS_EMAIL_SECRET_KEY}`) {
-      console.warn('Unauthorized attempt to send mass email. Check debug logs above for details.');
-      return new Response(JSON.stringify({ error: 'Unauthorized: Missing or invalid secret key. Review function logs.' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401,
-      })
-    }
-
-    if (!resend) {
-      console.error('Resend client not initialized. Cannot send emails. Check RESEND_API_KEY.');
-      return new Response(JSON.stringify({ error: 'Server configuration error: Email service not available.' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 503, // Service Unavailable
-      });
-    }
-    if (!RESEND_FROM_EMAIL) {
-        console.error('RESEND_FROM_EMAIL environment variable is not set.');
-        return new Response(JSON.stringify({ error: 'Server configuration error: From email not set.' }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 500,
-        });
-    }
-
-    let body: any;
-    try {
-        body = await req.json();
-    } catch (e) {
-        console.error('Error parsing request body:', e.message);
-        return new Response(JSON.stringify({ error: 'Invalid JSON in request body.' }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400, // Bad Request
-        });
-    }
-    
-    const { subject, html_body, selected_emails } = body;
-
-    if (!subject || !html_body || !selected_emails) {
-      return new Response(JSON.stringify({ error: 'Missing subject, html_body, or selected_emails in request.' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      })
-    }
-    if (!Array.isArray(selected_emails) || selected_emails.length === 0) {
-      return new Response(JSON.stringify({ error: 'selected_emails must be a non-empty array.' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      })
-    }
-
-    console.log(`Processing mass email. Subject: "${subject}". To ${selected_emails.length} users.`);
-    const finalHtmlContent = getFullHtmlContent(subject, html_body);
-    
-    let allBatchesSuccessful = true;
-    const errorsEncountered: { email: string, error: string }[] = [];
-    const BATCH_SIZE = 45; // Resend API limit is 50 per call in 'to' array.
-
-    for (let i = 0; i < selected_emails.length; i += BATCH_SIZE) {
-        const batchEmails = selected_emails.slice(i, i + BATCH_SIZE);
-        console.log(`Sending batch of ${batchEmails.length} emails. First email in batch: ${batchEmails[0]}`);
-        try {
-            const { data: sendData, error: sendError } = await resend.emails.send({
-                from: RESEND_FROM_EMAIL,
-                to: batchEmails,
-                subject: subject, // Resend API requires subject here, even if it's in HTML
-                html: finalHtmlContent,
-            });
-
-            if (sendError) {
-                console.error(`Error sending email batch starting with ${batchEmails[0]}:`, sendError);
-                batchEmails.forEach(email => errorsEncountered.push({ email, error: sendError.message || 'Unknown Resend error' }));
-                allBatchesSuccessful = false;
-            } else {
-                console.log(`Email batch sent successfully, ID: ${sendData?.id}. First email: ${batchEmails[0]}`);
-            }
-        } catch (batchError) {
-            console.error(`Exception during email batch sending (first email: ${batchEmails[0]}):`, batchError);
-            batchEmails.forEach(email => errorsEncountered.push({ email, error: batchError.message || 'Unknown exception' }));
-            allBatchesSuccessful = false;
-        }
-    }
-    
-    if (!allBatchesSuccessful) {
-      console.warn('Some email batches failed to send. Total errors:', errorsEncountered.length);
-      return new Response(JSON.stringify({ 
-        message: 'Some emails may not have been sent. Check server logs for details.', 
-        errors: errorsEncountered // Provides more detailed error feedback
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 207, // Multi-Status
-      });
-    }
-
-    console.log('All selected emails processed successfully.');
-    return new Response(JSON.stringify({ message: 'All selected emails processed successfully!' }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    });
-
-  } catch (error) {
-    console.error('Unexpected error in send_mass_email function:', error);
-    return new Response(JSON.stringify({ error: 'Internal Server Error: ' + (error.message || 'An unknown error occurred') }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
-  }
-})
+aW1wb3J0IHsgc2VydmUgfSBmcm9tICdodHRwczovL2Rlbm8ubGFuZC9zdGRA
+MC4xNzcuMC9odHRwL3NlcnZlci50cycKaW1wb3J0IHsgY3JlYXRlQ2xpZW50
+LCBTdXBhYmFzZUNsaWVudCB9IGZyb20gJ2h0dHBzOi8vZXNtLnNoL0BzdXBh
+YmFzZS9zdXBhYmFzZS1qc0AyJwppbXBvcnQgeyBSZXNlbmQgfSBmcm9tICdo
+dHRwczovL2VzbS5zaC9yZXNlbmRAMy4yLjAnCgovLyBDT1JTIGhlYWRlcnMK
+Y29uc3QgY29yc0hlYWRlcnMgPSB7CiAgJ0FjY2Vzcy1Db250cm9sLUFsbG93
+LU9yaWdpbic6ICcqJywgLy8gQWRqdXN0IGFzIG5lZWRlZCBmb3Igc2VjdXJp
+dHkKICAnQWNjZXNzLUNvbnRyb2wtQWxsb3ctSGVhZGVycyc6ICdhdXRob3Jp
+emF0aW9uLCB4LWNsaWVudC1pbmZvLCBhcGlrZXksIGNvbnRlbnQtdHlwZScs
+CiAgJ0FjY2Vzcy1Db250cm9sLUFsbG93LU1ldGhvZHMnOiAnUE9TVCwgT1BU
+SU9OUycsCn0KCi8vIEVudmlyb25tZW50IHZhcmlhYmxlcwpjb25zdCBTVVBB
+QkFTRV9VUkwgPSBEZW5vLmVudi5nZXQoJ1NVUEFCQVNFX1VSTCcpCmNvbnN0
+IFNVUEFCQVNFX1NFUlZJQ0VfUk9MRV9LRVkgPSBEZW5vLmVudi5nZXQoJ1NV
+UEFCQVNFX1NFUlZJQ0VfUk9MRV9LRVknKQpjb25zdCBSRVNFTkRfQVBJX0tF
+WSA9IERlbm8uZW52LmdldCgnUkVTRU5EX0FQSV9LRVknKQpjb25zdCBSRVNF
+TkRfRlJPTV9FTUFJTCA9IERlbm8uZW52LmdldCgnUkVTRU5EX0ZST01fRU1B
+SUwnKQpjb25zdCBNQVNTX0VNQUlMX1NFQ1JFVF9LRVkgPSBEZW5vLmVudi5n
+ZXQoJ01BU1NfRU1BSUxfU0VDUkVUX0tFWScpCgovLyBJbml0aWFsaXplIFN1
+cGFiYXNlIGNsaWVudCAob3B0aW9uYWwgaWYgbm90IGRpcmVjdGx5IHVzZWQs
+IGJ1dCBnb29kIHByYWN0aWNlKQpsZXQgc3VwYWJhc2VDbGllbnQ6IFN1cGFi
+YXNlQ2xpZW50CmlmIChTVVBBQkFTRV9VUkwgJiYgU1VQQUJBU0VfU0VSVklD
+RV9ST0xFX0tFWSkgewogIHN1cGFiYXNlQ2xpZW50ID0gY3JlYXRlQ2xpZW50
+KFNVUEFCQVNFX1VSTCwgU1VQQUJBU0VfU0VSVklDRV9ST0xFX0tFWSkKfSBl
+bHNlIHsKICBjb25zb2xlLndhcm4oJ01pc3NpbmcgU3VwYWJhc2UgVVJMIG9y
+IFNlcnZpY2UgUm9sZSBLZXkgZW52aXJvbm1lbnQgdmFyaWFibGVzLiBTdXBh
+YmFzZSBjbGllbnQgbm90IGluaXRpYWxpemVkLicpCn0KCi8vIEluaXRpYWxp
+emUgUmVzZW5kIGNsaWVudApsZXQgcmVzZW5kOiBSZXNlbmQKaWYgKFJFU0VO
+RF9BUElfS0VZKSB7CiAgcmVzZW5kID0gbmV3IFJlc2VuZChSRVNFTkRfQVBJ
+X0tFWSkKfSBlbHNlIHsKICBjb25zb2xlLmVycm9yKCdDUklUSUNBTDogTWlz
+c2luZyBSRVNFTkRfQVBJX0tFWSBlbnZpcm9ubWVudCB2YXJpYWJsZS4gUmVz
+ZW5kIGNsaWVudCBub3QgaW5pdGlhbGl6ZWQuJykKfQoKLy8gLS0tIEhUTUw
+KGVtYWlsIHRlbXBsYXRlIGZ1bmN0aW9uKSAtLS0KY29uc3QgZ2V0RnVsbEh0
+bWxDb250ZW50ID0gKHN1YmplY3RDb250ZW50OiBzdHJpbmcsIGJvZHlDb250
+ZW50OiBzdHJpbmcpOiBzdHJpbmcgPT4gewogIGNvbnN0IGN1cnJlbnRZZWFy
+ID0gbmV3IERhdGUoKS5nZXRGdWxsWWVhcigpOwogIGNvbnN0IGxvZ29Vcmwg
+PSBcImh0dHBzOi8vcmVzLmNsb3VkaW5hcnkuY29tL3NreWd1aWRlL2ltYWdl
+L3VwbG9hZC92MTcxNzc4OTg2OS9za3lndWlkZV9sb2dvX3N0YW5kYXJkX3Jl
+c29sdXRpb25fY29sb3JfdHJhbnNfYmtnZF94OXg1azkucG5nXCI7CiAgCiAg
+cmV0dXJuIGAKPCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9XCJlblwiPgo8
+aGVhZD4KICAgIDxtZXRhIGNoYXJzZXQ9XCJVVEYtOFwiPgogICAgPG1ldGEg
+bmFtZT1cInZpZXdwb3J0XCIgY29udGVudD1cIndpZHRoPWRldmljZS13aWR0
+aCwgaW5pdGlhbC1zY2FsZT0xLjBcIj4KICAgIDx0aXRsZT4ke3N1YmplY3RD
+b250ZW50fTwvdGl0bGU+CiAgICA8c3R5bGU+CiAgICAgICAgYm9keSB7IGZv
+bnQtZmFtaWx5OiBBcmlhbCwgc2Fucy1zZXJpZjsgbWFyZ2luOiAwOyBwYWRk
+aW5nOiAwOyBiYWNrZ3JvdW5kLWNvbG9yOiAjZjRmNGY0OyBjb2xvcjogIzMz
+MzMzMzsgLXdlYmtpdC1mb250LXNtb290aGluZzogYW50aWFsaWFzZWQ7IC1t
+b3otb3N4LWZvbnQtc21vb3RoaW5nOiBncmF5c2NhbGU7IH0KICAgICAgICAu
+Y29udGFpbmVyIHsgbWF4LXdpZHRoOiA2MDBweDsgbWFyZ2luOiAyMHB4IGF1
+dG87IGJhY2tncm91bmQtY29sb3I6ICNmZmZmZmY7IHBhZGRpbmc6IDIwcHg7
+IGJvcmRlci1yYWRpdXM6IDhweDsgYm94LXNoYWRvdzogMCAwIDEwcHggcmdi
+YSgwLDAsMCwwLjEpOyB9CiAgICAgICAgLmhlYWRlciB7IHRleHQtYWxpZ246
+IGNlbnRlcjsgcGFkZGluZy1ib3R0b206IDIwcHg7IGJvcmRlci1ib3R0b206
+IDFweCBzb2xpZCAjZWVlZWVlOyB9CiAgICAgICAgLmhlYWRlciBpbWcgeyBt
+YXgtd2lkdGg6IDIwMHB4OyBoZWlnaHQ6IGF1dG87IG1hcmdpbi1ib3R0b206
+IDE1cHg7IH0KICAgICAgICAuY29udGVudCB7IHBhZGRpbmc6IDIwcHggMDsg
+Y29sb3I6ICMzMzMzMzM7IGxpbmUtaGVpZ2h0OiAxLjY7IGZvbnQtc2l6ZTog
+MTZweDsgfQogICAgICAgIC5jb250ZW50IGgyIHsgY29sb3I6ICMyYzNlNTBj
+b2xvcjsgbWFyZ2luLXRvcDogMDsgZm9udC1zaXplOiAxLjVlbTsgfQogICAg
+ICAgIC5mb290ZXIgeyB0ZXh0LWFsaWduOiBjZW50ZXI7IHBhZGRpbmctdG9w
+OiAyMHB4OyBib3JkZXItdG9wOiAxcHggc29saWQgI2VlZWVlZTsgZm9udC1z
+aXplOiAwLjllbTsgY29sb3I6ICM3Nzc3Nzc7IH0KICAgIDwvc3R5bGU+Cjwv
+aGVhZD4KPGJvZHk+CiAgICA8ZGl2IGNsYXNzPVwiY29udGFpbmVyXCI+CiAg
+ICAgICAgPGRpdiBjbGFzcz1cImhlYWRlclwiPgogICAgICAgICAgICA8aW1n
+IHNyYz1cIiR7bG9nb1VybH1cIiBhbHQ9XCJTa3lHdWlkZSBMb2dvXCI+CiAg
+ICAgICAgICAgIDxoMj4ke3N1YmplY3RDb250ZW50fTwvaDI+CiAgICAgICAg
+PC9kaXY+CiAgICAgICAgPGRpdiBjbGFzcz1cImNvbnRlbnRcIj4KICAgICAg
+ICAgICAgICR7Ym9keUNvbnRlbnR9CiAgICAgICAgPC9kaXY+CiAgICAgICAg
+PGRpdiBjbGFzcz1cImZvb3RlclwiPgogICAgICAgICAgICA8cD4mbmJzcDsm
+Y29weTsgJHtjdXJyZW50WWVhcn0gU2t5R3VpZGUuIEFsbCByaWdodHMgcmVz
+ZXJ2ZWQuPC9wPgogICAgICAgICAgICA8IS0tIENvbnNpZGVyIGFkZGluZyBh
+biB1bnN1YnNjcmliZSBsaW5rIG1lY2hhbmlzbSBpZiBsZWdhbGx5IHJlcXVp
+cmVkIG9yIGZvciBiZXN0IHByYWN0aWNlIC0tPgogICAgICAgIDwvZGl2Pgog
+ICAgPC9kaXY+CjwvYm9keT4KPC9odG1sPgoAgCVgLnRyaW0oKTsKfTsKCnNl
+cnZlKGFzeW5jIChyZXE6IFJlcXVlc3QpID0+IHsKICBpZiAocmVxLm1ldGhv
+ZCA9PT0gJ09QVElPTlMnKSB7CiAgICByZXR1cm4gbmV3IFJlc3BvbnNlKCdv
+aycsIHsgaGVhZGVyczogY29yc0hlYWRlcnMgfSkKICB9CgogIHRyeSB7CiAg
+ICAvLyBBdXRob3JpemF0aW9uIGNoZWNrCiAgICBjb25zdCBhdXRoSGVhZGVy
+ID0gcmVxLmhlYWRlcnMuZ2V0KCdBdXRob3JpemF0aW9uJykKICAgIGlmICgh
+YXRoSGVhZGVyIHx8ICFNQVNTX0VNQUlMX1NFQ1JFVF9LRVkgfHwgYXV0aEhl
+YWRlciAhPT0gYEJlYXJlciAke01BU1NfRU1BSUxfU0VDUkVUX0tFWX1gKSB7
+CiAgICAgIHJldHVybiBuZXcgUmVzcG9uc2UoSlNPTi5zdHJpbmdpZnkoeyBl
+cnJvcjogJ1VuYXV0aG9yaXplZCcgfSksIHsgCiAgICAgICAgaGVhZGVyczog
+eyAuLi5jb3JzSGVhZGVycywgJ0NvbnRlbnQtVHlwZSc6ICdhcHBsaWNhdGlv
+bi9qc29uJyB9LAogICAgICAgIHN0YXR1czogNDAxLAogICAgICB9KQogICAg
+fQoKICAgIGlmICghcmVzZW5kKSB7CiAgICAgIGNvbnNvbGUuZXJyb3IoJ1Jl
+c2VuZCBjbGllbnQgbm90IGluaXRpYWxpemVkLiBDYW5ub3Qgc2VuZCBlbWFp
+bHMuIENoZWNrIFJFU0VORF9BUElfS0VZLicpOwogICAgICByZXR1cm4gbmV3
+IFJlc3BvbnNlKEpTT04uc3RyaW5naWZ5KHsgZXJyb3I6ICdTZXJ2ZXIgY29u
+ZmlndXJhdGlvbiBlcnJvcjogRW1haWwgc2VydmljZSBub3QgYXZhaWxhYmxl
+LicgfSksIHsKICAgICAgICBoZWFkZXJzOiB7IC4uLmNvcnNIZWFkZXJzLCAn
+Q29udGVudC1UeXBlJzogJ2FwcGxpY2F0aW9uL2pzb24nIH0sCiAgICAgICAg
+c3RhdHVzOiA1MDMsIC8vIFNlcnZpY2UgVW5hdmFpbGFibGUKICAgICAgfSk7
+CiAgICB9CiAgICBpZiAoIVJFU0VORF9GUk9NX0VNQUlMKSB7CiAgICAgICAg
+Y29uc29sZS5lcnJvcignUkVTRU5EX0ZST01fRU1BSUwgZW52aXJvbm1lbnQg
+dmFyaWFibGUgaXMgbm90IHNldC4nKTsKICAgICAgICByZXR1cm4gbmV3IFJl
+c3BvbnNlKEpTT04uc3RyaW5naWZ5KHsgZXJyb3I6ICdTZXJ2ZXIgY29uZmln
+dXJhdGlvbiBlcnJvcjogRnJvbSBlbWFpbCBub3Qgc2V0LicgfSksIHsKICAg
+ICAgICAgICAgaGVhZGVyczogeyAuLi5jb3JzSGVhZGVycywgJ0NvbnRlbnQt
+VHlwZSc6ICdhcHBsaWNhdGlvbi9qc29uJyB9LAogICAgICAgICAgICBzdGF0
+dXM6IDUwMCwKICAgICAgICB9KTsKICAgIH0KCiAgICAvLyBQYXJzaW5nIHJl
+cXVlc3QgYm9keQogICAgbGV0IGJvZHk6IGFueTsKICAgIHRyeSB7CiAgICAg
+ICAgYm9keSA9IGF3YWl0IHJlcS5qc29uKCk7CiAgICB9IGNhdGNoIChlKSB7
+CiAgICAgICAgY29uc29sZS5lcnJvcignRXJyb3IgcGFyc2luZyByZXF1ZXN0
+IGJvZHk6JywgZS5tZXNzYWdlKTsKICAgICAgICByZXR1cm4gbmV3IFJlc3Bv
+bnNlKEpTT04uc3RyaW5naWZ5KHsgZXJyb3I6ICdJbnZhbGlkIEpTT04gaW4g
+cmVxdWVzdCBib2R5LicgfSksIHsKICAgICAgICAgICAgaGVhZGVyczogeyAu
+Li5jb3JzSGVhZGVycywgJ0NvbnRlbnQtVHlwZSc6ICdhcHBsaWNhdGlvbi9q
+c29uJyB9LAogICAgICAgICAgICBzdGF0dXM6IDQwMCwgLy8gQmFkIFJlcXVl
+c3QKICAgICAgICB9KTsKICAgIH0KICAgIAogICAgY29uc3QgeyBzdWJqZWN0
+LCBodG1sX2JvZHksIHNlbGVjdGVkX2VtYWlscyB9ID0gYm9keTsKCiAgICAv
+LyBWYWxpZGF0ZSBpbnB1dHMKICAgIGlmICghc3ViamVjdCB8fCAhaHRtbF9i
+b2R5IHx8ICFzZWxlY3RlZF9lbWFpbHMpIHsKICAgICAgcmV0dXJuIG5ldyBS
+ZXNwb25zZShKU09OLnN0cmluZ2lmeSh7IGVycm9yOiAnTWlzc2luZyBzdWJq
+ZWN0LCBodG1sX2JvZHksIG9yIHNlbGVjdGVkX2VtYWlscyBpbiByZXF1ZXN0
+LicgfSksIHsKICAgICAgICBoZWFkZXJzOiB7IC4uLmNvcnNIZWFkZXJzLCAn
+Q29udGVudC1UeXBlJzogJ2FwcGxpY2F0aW9uL2pzb24nIH0sCiAgICAgICAg
+c3RhdHVzOiA0MDAsCiAgICAgIH0pCiAgICB9CiAgICBpZiAoIUFycmF5Lmlz
+QXJyYXkoc2VsZWN0ZWRfZW1haWxzKSB8fCBzZWxlY3RlZF9lbWFpbHMubGVu
+Z3RoID09PSAwKSB7CiAgICAgIHJldHVybiBuZXcgUmVzcG9uc2UoSlNPTi5z
+dHJpbmdpZnkoeyBlcnJvcjogJ3NlbGVjdGVkX2VtYWlscyBtdXN0IGJlIGEg
+bm9uLWVtcHR5IGFycmF5LicgfSksIHsKICAgICAgICBoZWFkZXJzOiB7IC4u
+LmNvcnNIZWFkZXJzLCAnQ29udGVudC1UeXBlJzogJ2FwcGxpY2F0aW9uL2pz
+b24nIH0sCiAgICAgICAgc3RhdHVzOiA0MDAsCiAgICAgIH0pCiAgICB9Cgog
+ICAgY29uc29sZS5sb2coYFByb2Nlc3NpbmcgbWFzcyBlbWFpbC4gU3ViamVj
+dDogXCIke3N1YmplY3R9XCIuIFRvICR7c2VsZWN0ZWRfZW1haWxzLmxlbmd0
+aH0gdXNlcnMuYCk7CiAgICBjb25zdCBmaW5hbEh0bWxDb250ZW50ID0gZ2V0
+RnVsbEh0bWxDb250ZW50KHN1YmplY3QsIGh0bWxfYm9keSk7CiAgICAKICAg
+IGxldCBhbGxCYXRjaGVzU3VjY2Vzc2Z1bCA9IHRydWU7CiAgICBjb25zdCBl
+cnJvcnNFbmNvdW50ZXJlZDogeyBlbWFpbDogc3RyaW5nLCBlcnJvcjogc3Ry
+aW5nIH1bXSA9IFtdOwogICAgY29uc3QgQkFUQ0hfU0laRSA9IDQ1OyAvLyBS
+ZXNlbmQgQVBJIGxpbWl0IGlzIDUwIHBlciBjYWxsIGluICd0bycgYXJyYXku
+CgogICAgZm9yIChsZXQgaSA9IDA7IGkgPCBzZWxlY3RlZF9lbWFpbHMubGVu
+Z3RoOyBpICs9IEJBVENIX1NJWkUpIHsKICAgICAgICBjb25zdCBiYXRjaEVt
+YWlscyA9IHNlbGVjdGVkX2VtYWlscy5zbGljZShpLCBpICsgQkFUQ0hfU0la
+RSk7CiAgICAgICAgY29uc29sZS5sb2coYFNlbmRpbmcgYmF0Y2ggb2YgJHti
+YXRjaEVtYWlscy5sZW5ndGh9IGVtYWlscy4gRmlyc3QgZW1haWwgaW4gYmF0
+Y2g6ICR7YmF0Y2hFbWFpbHNbMF19YCk7CiAgICAgICAgdHJ5IHsKICAgICAg
+ICAgICAgY29uc3QgeyBkYXRhOiBzZW5kRGF0YSwgZXJyb3I6IHNlbmRFcnJv
+ciB9ID0gYXdhaXQgcmVzZW5kLmVtYWlscy5zZW5kKHsKICAgICAgICAgICAg
+ICAgIGZyb206IFJFU0VORF9GUk9NX0VNQUlMLAogICAgICAgICAgICAgICAg
+dG86IGJhdGNoRW1haWxzLAogICAgICAgICAgICAgICAgc3ViamVjdDogc3Vi
+amVjdCwgLy8gUmVzZW5kIEFQSSByZXF1aXJlcyBzdWJqZWN0IGhlcmUsIGV2
+ZW4gaWYgaXQncyBpbiBIVE1MCiAgICAgICAgICAgICAgICBodG1sOiBmaW5h
+bEh0bWxDb250ZW50LAogICAgICAgICAgICB9KTsKCiAgICAgICAgICAgIGlm
+IChzZW5kRXJyb3IpIHsKICAgICAgICAgICAgICAgIGNvbnNvbGUuZXJyb3Io
+YEJcnJvciBzZW5kaW5nIGVtYWlsIGJhdGNoIHN0YXJ0aW5nIHdpdGggJHti
+YXRjaEVtYWlsc1swXX06YCwgc2VuZEVycm9yKTsKICAgICAgICAgICAgICAg
+IGJhdGNoRW1haWxzLmZvckVhY2goZW1haWwgPT4gZXJyb3JzRW5jb3VudGVy
+ZWQucHVzaCh7IGVtYWlsLCBlcnJvcjogc2VuZEVycm9yLm1lc3NhZ2UgfHwg
+J1Vua25vd24gUmVzZW5kIGVycm9yJyB9KSk7CiAgICAgICAgICAgICAgICBh
+bGxCYXRjaGVzU3VjY2Vzc2Z1bCA9IGZhbHNlOwogICAgICAgICAgICB9IGVs
+c2UgewogICAgICAgICAgICAgICAgY29uc29sZS5sb2coYEVtYWlsIGJhdGNo
+IHNlbnQgc3VjY2Vzc2Z1bGx5LCBJRDogJHtzZW5kRGF0YT8uaWR9LiBGaXJz
+dCBlbWFpbDogJHtiYXRjaEVtYWlsc1swXX1gKTsKICAgICAgICAgICAgfQog
+ICAgICAgIH0gY2F0Y2ggKGJhdGNoRXJyb3IpIHsKICAgICAgICAgICAgY29u
+c29sZS5lcnJvciggRXhjZXB0aW9uIGR1cmluZyBlbWFpbCBiYXRjaCBzZW5k
+aW5nIChmaXJzdCBlbWFpbDogJHtiYXRjaEVtYWlsc1swXX0pOmAsIGJhdGNo
+RXJyb3IpOwogICAgICAgICAgICBiYXRjaEVtYWlscy5mb3JFYWNoKGVtYWls
+ID0+IGVycm9yc0VuY291bnRlcmVkLnB1c2goeyBlbWFpbCwgZXJyb3I6IGJh
+dGNoRXJyb3IubWVzc2FnZSB8fCAnVW5rbm93biBleGNlcHRpb24nIH0pKTsK
+ICAgICAgICAgICAgYWxsQmF0Y2hlc1N1Y2Nlc3NmdWwgPSBmYWxzZTsKICAg
+ICAgICB9CiAgICB9CiAgICAKICAgIGlmICghYWxsQmF0Y2hlc1N1Y2Nlc3Nm
+dWwpIHsKICAgICAgY29uc29sZS53YXJuKCdTb21lIGVtYWlsIGJhdGNoZXMg
+ZmFpbGVkIHRvIHNlbmQuIFRvdGFsIGVycm9yczonLCBlcnJvcnNFbmNvdW50
+ZXJlZC5sZW5ndGgpOwogICAgICByZXR1cm4gbmV3IFJlc3BvbnNlKEpTT04u
+c3RyaW5naWZ5KHsgCiAgICAgICAgbWVzc2FnZTogJ1NvbWUgZW1haWxzIG1h
+eSBub3QgaGF2ZSBiZWVuIHNlbnQuIENoZWNrIHNlcnZlciBsb2dzIGZvciBk
+ZXRhaWxzLicsIAogICAgICAgIGVycm9yczogZXJyb3JzRW5jb3VudGVyZWQg
+Ly8gUHJvdmlkZXMgbW9yZSBkZXRhaWxlZCBlcnJvciBmZWVkYmFjawogICAg
+ICB9KSwgewogICAgICAgIGhlYWRlcnM6IHsgLi4uY29yc0hlYWRlcnMsICdD
+b250ZW50LVR5cGUnOiAnYXBwbGljYXRpb24vanNvbicgfSwKICAgICAgICBz
+dGF0dXM6IDIwNywgLy8gTXVsdGktU3RhdHVzCiAgICAgIH0pOwogICAgfQoK
+ICAgIGNvbnNvbGUubG9nKCdBbGwgc2VsZWN0ZWQgZW1haWxzIHByb2Nlc3Nl
+ZCBzdWNjZXNzZnVsbHkuJyk7CiAgICByZXR1cm4gbmV3IFJlc3BvbnNlKEpT
+TT04uc3RyaW5naWZ5KHsgbWVzc2FnZTogJ0FsbCBzZWxlY3RlZCBlbWFpbHMg
+cHJvY2Vzc2VkIHN1Y2Nlc3NmdWxseSEnIH0pLCB7CiAgICAgIGhlYWRlcnM6
+IHsgLi4uY29yc0hlYWRlcnMsICdDb250ZW50LVR5cGUnOiAnYXBwbGljYXRp
+b24vanNvbicgfSwKICAgICAgc3RhdHVzOiAyMDAsCiAgICB9KTsKCiAgfSBj
+YXRjaCAoZXJyb3IpIHsKICAgIGNvbnNvbGUuZXJyb3IoJ1VuZXhwZWN0ZWQg
+ZXJyb3IgaW4gc2VuZF9tYXNzX2VtYWlsIGZ1bmN0aW9uOicsIGVycm9yKTsK
+ICAgIHJldHVybiBuZXcgUmVzcG9uc2UoSlNPTi5zdHJpbmdpZnkoeyBlcnJv
+cjogJ0ludGVybmFsIFNlcnZlciBFcnJvcjogJyArIChlcnJvci5tZXNzYWdl
+IHx8ICdBbiB1bmtub3duIGVycm9yIG9jY3VycmVkJykgfSksIHsKICAgICAg
+aGVhZGVyczogeyAuLi5jb3JzSGVhZGVycywgJ0NvbnRlbnQtVHlwZSc6ICdh
+cHBsaWNhdGlvbi9qc29uJyB9LAogICAgICBzdGF0dXM6IDUwMCwKICAgIH0p
+OwogIH0KfSkK
