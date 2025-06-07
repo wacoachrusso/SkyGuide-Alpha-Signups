@@ -4,7 +4,8 @@
 [[redirects]]
   from = "/admin"
   to = "/.netlify/functions/admin-auth"
-  status = 200 # Serve the function's response directly
+  status = 200
+  force = true # Serve the function's response directly
 
 [[redirects]]
   from = "/admin/*"
