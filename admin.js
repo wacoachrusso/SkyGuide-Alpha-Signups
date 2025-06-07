@@ -2,23 +2,29 @@ console.log('admin.js script started');
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOMContentLoaded event fired');
+    const tableBody = document.querySelector('#signupTable tbody');
+    console.log('signupsTableBody element:', tableBody); // Log for the new tableBody variable
+    const subjectInput = document.getElementById('emailSubject');
+    const messageInput = document.getElementById('emailMessage'); // HTML ID is emailMessage, JS was emailBody
+    const sendButton = document.getElementById('sendEmailButton');
+    const adminMessage = document.getElementById('adminMessage');
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const secretKeyInput = document.getElementById('massEmailSecretKey');
+
     const SUPABASE_URL = 'https://ulihpezvwculbmrddjfb.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsaWhwZXp2d2N1bGJtcmRkamZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzE2NTEsImV4cCI6MjA2NDQwNzY1MX0.hfxEN4-X9EJM9MnkYFjMjtWZyjXvKRMCWMIShp2infw';
-
-    const signupsTableBody = document.getElementById('signupsTableBody');
-    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-    const sendEmailButton = document.getElementById('sendEmailButton');
-    const emailSubject = document.getElementById('emailSubject');
-    const emailMessageElement = document.getElementById('emailMessage'); // Corrected ID
-    const adminMessage = document.getElementById('adminMessage');
-    const massEmailSecretKey = document.getElementById('massEmailSecretKey');
-
     console.log('Attempting to create Supabase client. window.supabase is:', window.supabase);
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     console.log('Supabase client created:', supabase);
 
     async function loadSignups() {
         console.log('loadSignups function called');
+        if (!tableBody) {
+            console.error('Cannot load signups because tableBody element is null.');
+            adminMessage.textContent = 'Error: UI element for table body not found.';
+            adminMessage.className = 'form-message error';
+            return;
+        }
         const { data, error } = await supabase.from('alpha_signups').select('*'); // Temporarily removed order for debugging
         console.log('Supabase response data:', data);
         console.log('Supabase response error:', error);
@@ -28,12 +34,18 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error loading signups:', error);
             return;
         }
+        tableBody.innerHTML = ''; // Clear existing rows
+        data.forEach((signup, index) => { // Assuming 'data' is the array of signups
+            const row = tableBody.insertRow();
+            // Checkbox cell
+            const cellCheckbox = row.insertCell();
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'user-select-checkbox'; // Consistent class name
+            checkbox.value = signup.email;
+            cellCheckbox.appendChild(checkbox);
 
-        signupsTableBody.innerHTML = ''; // Clear existing rows
-        data.forEach((signup, index) => {
-            const row = signupsTableBody.insertRow();
-            row.insertCell().innerHTML = `<input type=\"checkbox\" class=\"user-checkbox\" value=\"${signup.email}\">`;
-            row.insertCell().textContent = index + 1;
+            row.insertCell().textContent = index + 1; // Number
             row.insertCell().textContent = new Date(signup.signed_up_at).toLocaleString();
             row.insertCell().textContent = signup.first_name;
             row.insertCell().textContent = signup.last_name;
@@ -43,9 +55,8 @@ document.addEventListener('DOMContentLoaded', () => {
             row.insertCell().textContent = signup.crew_base;
             row.insertCell().textContent = signup.agreed_to_terms ? 'Yes' : 'No';
         });
-
-        // Add event listener for individual checkboxes to uncheck "Select All" if one is unchecked
-        document.querySelectorAll('.user-checkbox').forEach(checkbox => {
+         // Add event listener for individual checkboxes to uncheck "Select All" if one is unchecked
+        document.querySelectorAll('.user-select-checkbox').forEach(checkbox => {
             checkbox.addEventListener('change', () => {
                 if (!checkbox.checked) {
                     selectAllCheckbox.checked = false;
@@ -54,68 +65,62 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', (event) => {
-            document.querySelectorAll('.user-checkbox').forEach(checkbox => {
-                checkbox.checked = event.target.checked;
+    if (selectAllCheckbox) { // Check if selectAllCheckbox exists
+        selectAllCheckbox.addEventListener('change', () => {
+            const userCheckboxes = document.querySelectorAll('.user-select-checkbox');
+            userCheckboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
             });
         });
     }
 
-    if (sendEmailButton) {
-        sendEmailButton.addEventListener('click', async () => {
-            const subject = emailSubject.value.trim();
-            const html_body = emailMessageElement.value.trim(); // Used corrected element
-            const secretKey = massEmailSecretKey.value.trim();
-            const selected_emails = Array.from(document.querySelectorAll('.user-checkbox:checked')).map(cb => cb.value);
+    if (sendButton) { // Check if sendButton exists
+        sendButton.addEventListener('click', async () => {
+            const subject = subjectInput.value.trim();
+            const html_body = messageInput.value.trim(); 
+            const secretKey = secretKeyInput.value.trim();
 
-            if (!subject || !html_body) {
-                adminMessage.textContent = 'Subject and body are required.';
+            const selectedEmails = Array.from(document.querySelectorAll('.user-select-checkbox:checked'))
+                                        .map(checkbox => checkbox.value);
+
+            if (!subject || !html_body || !secretKey) {
+                adminMessage.textContent = 'Secret Key, Subject, and Message are required.';
                 adminMessage.className = 'form-message error';
                 return;
             }
 
-            if (selected_emails.length === 0) {
+            if (selectedEmails.length === 0) {
                 adminMessage.textContent = 'Please select at least one user to email.';
                 adminMessage.className = 'form-message error';
                 return;
             }
 
-            if (!secretKey) {
-                adminMessage.textContent = 'Mass Email Secret Key is required.';
-                adminMessage.className = 'form-message error';
-                return;
-            }
-
             adminMessage.textContent = 'Sending emails...';
-            adminMessage.className = 'form-message info';
+            adminMessage.className = 'form-message info'; 
 
-            try {
-                const { data, error } = await supabase.functions.invoke('send_mass_email', {
-                    body: JSON.stringify({ subject, html_body, selected_emails }),
-                    headers: {
-                        'Authorization': `Bearer ${secretKey}`
-                    }
-                });
-
-                if (error) throw error;
-
-                if (data.error) {
-                    throw new Error(data.error);
+            const { data, error } = await supabase.functions.invoke('send_mass_email', {
+                body: { subject, html_body, selected_emails: selectedEmails }, // Ensure this matches Edge Function
+                headers: {
+                    'Authorization': `Bearer ${secretKey}`
                 }
-
-                adminMessage.textContent = data.message || 'Emails sent successfully!';
-                adminMessage.className = 'form-message success';
-            } catch (error) {
-                console.error('Error sending mass email:', error);
-                adminMessage.textContent = `Error: ${error.message}`;
+            });
+            if (error) {
+                adminMessage.textContent = `Failed to send emails: ${error.message || 'Unknown error'}`;
                 adminMessage.className = 'form-message error';
+                console.error('Error invoking send_mass_email:', error);
+            } else if (data && data.error) { // Check for functional error from Edge Function
+                 adminMessage.textContent = `Failed to send emails: ${data.error}`;
+                 adminMessage.className = 'form-message error';
+                 console.error('Error from send_mass_email function:', data.error);
+            }else {
+                adminMessage.textContent = data ? (data.message || 'Emails processed successfully!') : 'Emails sent successfully (no specific message from server).';
+                adminMessage.className = 'form-message success';
+                if (subjectInput) subjectInput.value = '';
+                if (messageInput) messageInput.value = '';
             }
         });
     }
-
-    // Initial load of signups
-    if (signupsTableBody) {
-        loadSignups();
-    }
+    
+    // Unconditional call to loadSignups
+    loadSignups(); 
 });
