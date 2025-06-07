@@ -1,5 +1,7 @@
 console.log('admin.js script started');
+
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOMContentLoaded event fired');
     const SUPABASE_URL = 'https://ulihpezvwculbmrddjfb.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsaWhwZXp2d2N1bGJtcmRkamZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzE2NTEsImV4cCI6MjA2NDQwNzY1MX0.hfxEN4-X9EJM9MnkYFjMjtWZyjXvKRMCWMIShp2infw';
 
@@ -7,13 +9,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectAllCheckbox = document.getElementById('selectAllCheckbox');
     const sendEmailButton = document.getElementById('sendEmailButton');
     const emailSubject = document.getElementById('emailSubject');
-    const emailBody = document.getElementById('emailBody');
+    const emailMessageElement = document.getElementById('emailMessage'); // Corrected ID
     const adminMessage = document.getElementById('adminMessage');
     const massEmailSecretKey = document.getElementById('massEmailSecretKey');
 
+    console.log('Attempting to create Supabase client. window.supabase is:', window.supabase);
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('Supabase client created:', supabase);
 
     async function loadSignups() {
+        console.log('loadSignups function called');
         const { data, error } = await supabase.from('alpha_signups').select('*'); // Temporarily removed order for debugging
         console.log('Supabase response data:', data);
         console.log('Supabase response error:', error);
@@ -27,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
         signupsTableBody.innerHTML = ''; // Clear existing rows
         data.forEach((signup, index) => {
             const row = signupsTableBody.insertRow();
-            row.insertCell().innerHTML = `<input type="checkbox" class="user-checkbox" value="${signup.email}">`;
+            row.insertCell().innerHTML = `<input type=\"checkbox\" class=\"user-checkbox\" value=\"${signup.email}\">`;
             row.insertCell().textContent = index + 1;
             row.insertCell().textContent = new Date(signup.signed_up_at).toLocaleString();
             row.insertCell().textContent = signup.first_name;
@@ -60,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sendEmailButton) {
         sendEmailButton.addEventListener('click', async () => {
             const subject = emailSubject.value.trim();
-            const html_body = emailBody.value.trim();
+            const html_body = emailMessageElement.value.trim(); // Used corrected element
             const secretKey = massEmailSecretKey.value.trim();
             const selected_emails = Array.from(document.querySelectorAll('.user-checkbox:checked')).map(cb => cb.value);
 
