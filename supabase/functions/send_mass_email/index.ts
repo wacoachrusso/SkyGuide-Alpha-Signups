@@ -165,7 +165,7 @@ serve(async (req: Request) => {
     table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
     img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
     table { border-collapse: collapse !important; }
-    body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #f0f2f5; font-family: Arial, sans-serif; }
+    body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #F4F7F9; font-family: Arial, sans-serif; }
     .webkit { max-width: 600px; margin: 0 auto; } 
   </style>
 </head>
@@ -182,7 +182,7 @@ serve(async (req: Request) => {
         <td align="center" valign="top" width="600">
         <![endif]-->
         <div class="webkit">
-          <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; overflow: hidden;">
+          <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; overflow: hidden; border-top: 5px solid #003366;">
             <tr>
               <td align="center" style="padding: 30px 30px 20px 30px;">
                 <img src="${logoUrl}" alt="SkyGuide Logo" style="display: block; max-width: 180px; min-width: 100px; width: 100%; height: auto;">
@@ -198,7 +198,7 @@ serve(async (req: Request) => {
               </td>
             </tr>
             <tr>
-              <td align="center" style="padding: 20px 30px; background-color: #e9ecef; font-family: Arial, sans-serif; font-size: 12px; line-height: 18px; color: #777777;">
+              <td align="center" style="padding: 20px 30px; background-color: #EAEAEA; font-family: Arial, sans-serif; font-size: 12px; line-height: 18px; color: #555555;">
                 <p style="margin: 0 0 5px 0;">&copy; ${currentYear} SkyGuide. All rights reserved.</p>
                 <p style="margin: 0;">SkyGuide Alpha Program</p>
               </td>
