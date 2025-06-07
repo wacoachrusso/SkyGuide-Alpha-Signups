@@ -1,6 +1,11 @@
 [functions]
   directory = "netlify/functions/"
-  included_files = ["_admin_content/**"]
+  included_files = [
+    "_admin_content/**",
+    "admin.html",
+    "admin.js",
+    "style.css"
+  ]
 
 [[redirects]]
   from = "/admin"
