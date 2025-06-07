@@ -80,51 +80,42 @@ serve(async (req: Request) => {
   let subject: string;
   let html_body: string;
   let text_body: string | undefined;
+  let selected_emails: string[];
 
   try {
-    const body = await req.json()
-    subject = body.subject
-    html_body = body.html_body
-    text_body = body.text_body // Optional
+    const body = await req.json();
+    subject = body.subject;
+    html_body = body.html_body;
+    text_body = body.text_body; // Optional
+    selected_emails = body.selected_emails;
 
     if (!subject || !html_body) {
-      throw new Error('Missing subject or html_body in request.')
+      throw new Error('Missing subject or html_body in request.');
+    }
+    if (!selected_emails || !Array.isArray(selected_emails) || selected_emails.length === 0) {
+      throw new Error('Missing or empty selected_emails array in request.');
     }
   } catch (error) {
-    console.error('Error parsing request body:', error.message)
+    console.error('Error parsing request body:', error.message);
     return new Response(JSON.stringify({ error: 'Bad Request: ' + error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
-    })
+    });
   }
 
-  console.log(`Mass email requested. Subject: "${subject}"`);
+  const recipientEmails = selected_emails.map(email => String(email).trim()).filter(email => email && email.includes('@'));
+
+  if (recipientEmails.length === 0) {
+    console.log('No valid recipient emails provided in selected_emails.');
+    return new Response(JSON.stringify({ message: 'No valid recipient emails provided.' }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 400, // Bad request as no valid emails to send to
+    });
+  }
+
+  console.log(`Mass email requested for ${recipientEmails.length} selected recipients. Subject: "${subject}"`);
 
   try {
-    // --- Fetch Recipients ---
-    const { data: users, error: fetchError } = await supabaseClient
-      .from('alpha_signups')
-      .select('email')
-      // .eq('is_subscribed', true) // Optional: if you add an unsubscribe flag
-
-    if (fetchError) {
-      console.error('Error fetching users:', fetchError)
-      return new Response(JSON.stringify({ error: 'Failed to fetch recipients.' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      })
-    }
-
-    if (!users || users.length === 0) {
-      console.log('No users found to send email to.');
-      return new Response(JSON.stringify({ message: 'No recipients found.' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      })
-    }
-
-    const recipientEmails = users.map(user => user.email).filter(email => email); // Ensure emails are valid strings
-    console.log(`Found ${recipientEmails.length} recipients.`);
 
     // --- Prepare Email Content with Template ---
     const logoUrl = 'https://res.cloudinary.com/dcuwsbzv5/image/upload/v1745758949/file_00000000ea2c522f8058dabedafb9d87_conversation_id_67f400ae-b6d8-8009-9c96-ce4f96508a4e_message_id_78191f48-475a-407d-b46a-0037743a80eb_hgcqtw.png';
@@ -219,59 +210,60 @@ serve(async (req: Request) => {
 
     // Use original html_body (which is plain text from user) for text version if text_body is not supplied by user.
     const plainTextMessageForTextPart = text_body || html_body || "(No message content was provided.)"; 
-    const finalTextBody = `${subject}\n\n${plainTextMessageForTextPart}\n\nBest regards,\nThe SkyGuide Team\n\n© ${currentYear} SkyGuide. All rights reserved.`;
 
-    // --- Batch Sending ---
-    let successfulSends = 0;
-    let failedSends = 0;
-    const totalBatches = Math.ceil(recipientEmails.length / BATCH_SIZE);
-    let currentBatch = 0;
+    // --- Send Emails in Batches ---
+    let allSentSuccessfully = true;
+    let errorsEncountered: string[] = [];
 
     for (let i = 0; i < recipientEmails.length; i += BATCH_SIZE) {
-      currentBatch++;
       const batch = recipientEmails.slice(i, i + BATCH_SIZE);
-      console.log(`Processing batch ${currentBatch}/${totalBatches} with ${batch.length} emails.`);
-      
+      console.log(`Sending batch of ${batch.length} emails...`);
+
       try {
-        const { data, error } = await resend.emails.send({
+        const { data, error: resendError } = await resend.emails.send({
           from: RESEND_FROM_EMAIL,
-          to: batch, // Resend accepts an array for 'to' for batch sending
+          to: batch, // Resend can handle an array of recipients for 'to'
           subject: subject,
           html: fullHtmlContent,
-          text: finalTextBody,
+          text: plainTextMessageForTextPart, 
         });
 
-        if (error) {
-          console.error(`Error sending batch ${currentBatch}:`, error);
-          failedSends += batch.length; // Assume all in batch failed if error object is present
+        if (resendError) {
+          console.error('Error sending email batch via Resend:', resendError);
+          allSentSuccessfully = false;
+          errorsEncountered.push(`Batch starting with ${batch[0]}: ${resendError.message}`);
         } else {
-          console.log(`Successfully sent batch ${currentBatch}. ID: ${data?.id}`);
-          successfulSends += batch.length;
+          console.log('Email batch sent successfully via Resend:', data);
         }
       } catch (batchError) {
-        console.error(`Exception sending batch ${currentBatch}:`, batchError);
-        failedSends += batch.length;
+        console.error('Critical error during batch email sending:', batchError);
+        allSentSuccessfully = false;
+        errorsEncountered.push(`Batch starting with ${batch[0]}: ${batchError.message}`);
       }
-      // Optional: Add a small delay between batches if concerned about rate limits, though Resend handles this well.
-      // await new Promise(resolve => setTimeout(resolve, 1000)); // 1-second delay
     }
 
-    console.log(`Mass email process complete. Successful: ${successfulSends}, Failed: ${failedSends}`);
-    return new Response(JSON.stringify({ 
-        message: 'Mass email processing finished.', 
-        successful_sends: successfulSends,
-        failed_sends: failedSends,
-        total_recipients_processed: recipientEmails.length
-    }), {
+    if (!allSentSuccessfully) {
+      console.warn('Some email batches failed to send. Errors:', errorsEncountered);
+      return new Response(JSON.stringify({ 
+        message: 'Some emails may not have been sent. Check server logs.', 
+        errors: errorsEncountered 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 207, // Multi-Status, as some might have succeeded
+      });
+    }
+
+    console.log('All selected emails processed successfully.');
+    return new Response(JSON.stringify({ message: 'All selected emails processed successfully!' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
-    })
+    });
 
-  } catch (e) {
-    console.error('Unexpected error in mass email function:', e)
-    return new Response(JSON.stringify({ error: 'Internal Server Error: ' + e.message }), {
+  } catch (error) {
+    console.error('Unexpected error in send_mass_email function:', error);
+    return new Response(JSON.stringify({ error: 'Internal Server Error: ' + error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
-    })
+    });
   }
-})
+});
