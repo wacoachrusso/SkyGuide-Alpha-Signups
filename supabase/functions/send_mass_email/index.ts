@@ -14,7 +14,7 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
 const RESEND_FROM_EMAIL = Deno.env.get('RESEND_FROM_EMAIL')
-const MASS_EMAIL_SECRET_KEY = Deno.env.get('MASS_EMAIL_SECRET_KEY')
+const MASS_EMAIL_SECRET_KEY = Deno.env.get('MASS_EMAIL_SECRET_KEY') // This is the one used in the actual check later
 
 // Initialize Supabase client (optional if not directly used, but good practice)
 let supabaseClient: SupabaseClient
@@ -32,13 +32,11 @@ if (RESEND_API_KEY) {
   console.error('CRITICAL: Missing RESEND_API_KEY environment variable. Resend client not initialized.')
 }
 
-// --- HTML Email Template Function ---
+// --- HTML Email Template Function --- (This remains the same)
 const getFullHtmlContent = (subjectContent: string, bodyContent: string): string => {
   const currentYear = new Date().getFullYear();
   const logoUrl = "https://res.cloudinary.com/skyguide/image/upload/v1717789869/skyguide_logo_standard_resolution_color_trans_bkgd_x9x5k9.png";
   
-  // Ensure bodyContent is treated as HTML. If it might contain characters that break HTML, sanitize/escape appropriately.
-  // For now, assuming html_body from admin panel is intended as safe HTML.
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -76,15 +74,31 @@ const getFullHtmlContent = (subjectContent: string, bodyContent: string): string
 };
 
 serve(async (req: Request) => {
+  // --- TEMPORARY DEBUG LOGS ---
+  console.log('--- DEBUG START ---');
+  const receivedAuthHeader = req.headers.get('Authorization');
+  const expectedSecretKeyEnv = Deno.env.get('MASS_EMAIL_SECRET_KEY'); // Explicitly get it for logging
+  console.log('Received Authorization Header:', receivedAuthHeader);
+  console.log('Expected MASS_EMAIL_SECRET_KEY from env:', expectedSecretKeyEnv);
+  
+  if (expectedSecretKeyEnv && receivedAuthHeader) {
+    console.log('Comparison: `Bearer ${expectedSecretKeyEnv}` === receivedAuthHeader ?', `Bearer ${expectedSecretKeyEnv}` === receivedAuthHeader);
+  } else {
+    console.log('Comparison: One or both values for comparison are null/undefined.');
+  }
+  console.log('--- DEBUG END ---');
+  // --- END TEMPORARY DEBUG LOGS ---
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const authHeader = req.headers.get('Authorization')
+    const authHeader = req.headers.get('Authorization') // Original line for the actual check
+    // The MASS_EMAIL_SECRET_KEY used here is the one defined at the top of the script from Deno.env.get()
     if (!authHeader || !MASS_EMAIL_SECRET_KEY || authHeader !== `Bearer ${MASS_EMAIL_SECRET_KEY}`) {
-      console.warn('Unauthorized attempt to send mass email.');
-      return new Response(JSON.stringify({ error: 'Unauthorized: Missing or invalid secret key.' }), {
+      console.warn('Unauthorized attempt to send mass email. Check debug logs above for details.');
+      return new Response(JSON.stringify({ error: 'Unauthorized: Missing or invalid secret key. Review function logs.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
       })
