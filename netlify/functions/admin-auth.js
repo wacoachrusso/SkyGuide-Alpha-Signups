@@ -60,12 +60,33 @@ exports.handler = async (event, context) => {
                 // Path to your actual admin page (admin/index.html)
                 // The function is in netlify/functions/admin-auth.js
                 // So, ../../../admin/index.html should go up to the project root, then into admin/
-                const adminHtmlPath = path.resolve('admin.html'); // Test: Attempt to resolve from CWD (project root)
-                const adminHtmlContent = fs.readFileSync(adminHtmlPath, 'utf8');
+                let adminHtmlContent = '';
+                let successfullyReadPreferredFile = false;
+
+                try {
+                    const preferredAdminHtmlPath = path.resolve('admin.html');
+                    console.log('Attempting to read preferred admin file:', preferredAdminHtmlPath);
+                    adminHtmlContent = fs.readFileSync(preferredAdminHtmlPath, 'utf8');
+                    successfullyReadPreferredFile = true;
+                    console.log('Successfully read preferred admin.html');
+                } catch (readError) {
+                    console.error('Failed to read preferred admin.html:', readError);
+                    // Fallback to try reading the other admin page for diagnostics
+                    try {
+                        const fallbackAdminHtmlPath = path.resolve('_admin_content/index.html'); // Assuming it's at root/_admin_content/
+                        console.log('Attempting to read fallback _admin_content/index.html:', fallbackAdminHtmlPath);
+                        adminHtmlContent = fs.readFileSync(fallbackAdminHtmlPath, 'utf8');
+                        console.log('Successfully read fallback _admin_content/index.html. THIS IS NOT THE INTENDED FILE.');
+                    } catch (fallbackReadError) {
+                        console.error('Failed to read fallback _admin_content/index.html as well:', fallbackReadError);
+                        throw new Error('Neither admin page could be read.'); // This will be caught by the outer catch block
+                    }
+                }
+
                 return {
                     statusCode: 200,
                     headers: { 'Content-Type': 'text/html' },
-                    body: adminHtmlContent,
+                    body: adminHtmlContent, // Will be either preferred or fallback, or outer catch if both fail
                 };
             } catch (error) {
                 console.error("Error reading admin page:", error);
