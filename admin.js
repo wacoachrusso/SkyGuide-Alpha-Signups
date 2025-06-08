@@ -3,11 +3,7 @@ console.log('admin.js script started');
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOMContentLoaded event fired');
     const tableBody = document.querySelector('#signupTable tbody');
-<<<<<<< HEAD
-    console.log('signupsTableBody element:', tableBody); // Added this line
-=======
     console.log('signupsTableBody element:', tableBody);
->>>>>>> 4fdec5d06747b0946befb4ab4212bbe2574bc7bf
     const subjectInput = document.getElementById('emailSubject');
     const messageInput = document.getElementById('emailMessage');
     const sendButton = document.getElementById('sendEmailButton');
@@ -23,9 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadSignups() {
         console.log('loadSignups function called');
-<<<<<<< HEAD
-        const { data, error } = await supabase.from('alpha_signups').select('*'); // Temporarily removed order for debugging
-=======
         if (!tableBody) {
             console.error('Cannot load signups because tableBody element is null.');
             adminMessage.textContent = 'Error: UI element for table body not found.';
@@ -33,7 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const { data, error } = await supabase.from('alpha_signups').select('*');
->>>>>>> 4fdec5d06747b0946befb4ab4212bbe2574bc7bf
         console.log('Supabase response data:', data);
         console.log('Supabase response error:', error);
         if (data && data.length > 0) {
@@ -45,62 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error loading signups:', error);
             return;
         }
-<<<<<<< HEAD
-        tableBody.innerHTML = '';
-        data.forEach(row => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${row.first_name}</td><td>${row.last_name}</td><td>${row.email}</td><td>${row.airline}</td><td>${row.job_title}</td><td>${row.base || ''}</td><td><input type="checkbox" class="user-select-checkbox" value="${row.email}"></td><td>${new Date(row.created_at).toLocaleString()}</td>`;
-            tableBody.appendChild(tr);
-        });
-    }
-
-    selectAllCheckbox.addEventListener('change', () => {
-        const userCheckboxes = document.querySelectorAll('.user-select-checkbox');
-        userCheckboxes.forEach(checkbox => {
-            checkbox.checked = selectAllCheckbox.checked;
-        });
-    });
-
-    sendButton.addEventListener('click', async () => {
-        const subject = subjectInput.value.trim();
-        const html_body = messageInput.value.trim(); // Edge function expects html_body
-        const secretKey = secretKeyInput.value.trim();
-
-        const selectedEmails = Array.from(document.querySelectorAll('.user-select-checkbox:checked'))
-                                    .map(checkbox => checkbox.value);
-
-        if (!subject || !html_body || !secretKey) {
-            adminMessage.textContent = 'Secret Key, Subject, and Message are required.';
-            adminMessage.className = 'form-message error';
-            return;
-        }
-
-        if (selectedEmails.length === 0) {
-            adminMessage.textContent = 'Please select at least one user to email.';
-            adminMessage.className = 'form-message error';
-            return;
-        }
-
-        adminMessage.textContent = 'Sending emails...';
-        adminMessage.className = 'form-message info'; // Use a neutral 'info' class
-
-        const { data, error } = await supabase.functions.invoke('send_mass_email', {
-            body: { subject, html_body, selected_emails: selectedEmails },
-            headers: {
-                'Authorization': `Bearer ${secretKey}`
-            }
-        });
-        if (error) {
-            adminMessage.textContent = `Failed to send emails: ${error.message || 'Unknown error'}`;
-            adminMessage.className = 'form-message error';
-        } else {
-            adminMessage.textContent = data ? (data.message || 'Emails processed successfully!') : 'Emails sent successfully (no specific message from server).'; // Display server message if available
-            adminMessage.className = 'form-message success';
-            subjectInput.value = '';
-            messageInput.value = '';
-        }
-    });
-=======
         tableBody.innerHTML = ''; // Clear existing rows
         data.forEach((signup, index) => {
             const row = tableBody.insertRow();
@@ -140,7 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
->>>>>>> 4fdec5d06747b0946befb4ab4212bbe2574bc7bf
 
     if (sendButton) {
         sendButton.addEventListener('click', async () => {

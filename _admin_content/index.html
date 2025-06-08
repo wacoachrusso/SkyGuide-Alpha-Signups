@@ -257,13 +257,7 @@
             try {
                 const { data, error } = await supabaseClient.functions.invoke('send_mass_email', {
                     body: payload,
-<<<<<<< HEAD
-                    headers: {
-                        'Authorization': `Bearer ${secretKey}`
-                    }
-=======
                     headers: { Authorization: `Bearer ${secretKey}` },
->>>>>>> 4fdec5d06747b0946befb4ab4212bbe2574bc7bf
                 });
 
                 if (error) {
