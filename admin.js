@@ -99,6 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
             adminMessage.textContent = 'Sending emails...';
             adminMessage.className = 'form-message info'; 
 
+            console.log('Client-side secretKey being sent:', secretKey); // DEBUGGING LINE
             const { data: responseData, error: responseError } = await supabase.functions.invoke('send_mass_email', { // Renamed to avoid conflict
                 body: { subject, html_body, selected_emails: selectedEmails },
                 headers: { 'Authorization': `Bearer ${secretKey}` }
