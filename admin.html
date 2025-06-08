@@ -3,297 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SkyGuide Admin Dashboard</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f7f6; color: #333; }
-        .container { max-width: 1200px; margin: 20px auto; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1, h2 { color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom: 10px; }
-        nav { background-color: #004080; padding: 10px 0; margin-bottom: 20px; }
-        nav ul { list-style-type: none; padding: 0; margin: 0; text-align: center; }
-        nav ul li { display: inline; margin-right: 20px; }
-        nav ul li a { color: white; text-decoration: none; font-weight: bold; padding: 10px 15px; border-radius: 4px; transition: background-color 0.3s; }
-        nav ul li a:hover, nav ul li a.active { background-color: #0056b3; }
-        .section { margin-bottom: 30px; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px; background-color: #fdfdfd; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 0.9em; }
-        th { background-color: #e9ecef; color: #333; font-weight: bold; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        tr:hover { background-color: #f1f1f1; }
-        #userCount { font-weight: bold; color: #0056b3; }
-        /* Styles for mass email form (can be refined from admin_mass_email.html) */
-        label { display: block; margin-top: 15px; margin-bottom: 5px; font-weight: bold; }
-        input[type="text"], input[type="password"], textarea {
-            width: calc(100% - 22px); /* Account for padding and border */
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        textarea { min-height: 150px; resize: vertical; }
-        button {
-            background-color: #007bff; color: white; padding: 10px 20px;
-            border: none; border-radius: 4px; cursor: pointer; font-size: 16px;
-        }
-        button:hover { background-color: #0056b3; }
-        #responseArea { margin-top: 20px; padding: 15px; border-radius: 4px; background-color: #e9ecef; border: 1px solid #ced4da; white-space: pre-wrap; word-wrap: break-word; }
-        .error { color: red; font-weight: bold; }
-        .success { color: green; font-weight: bold; }
-        .hidden { display: none; }
-    </style>
+    <title>SkyGuide Admin Console</title>
+    <link rel="stylesheet" href="admin-style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>SkyGuide Admin Dashboard</h1>
-
-        <nav>
-            <ul>
-                <li><a href="#usersSection" class="tab-link active" onclick="showTab('usersSection')">View Signups</a></li>
-                <li><a href="#emailSection" class="tab-link" onclick="showTab('emailSection')">Send Mass Email</a></li>
-                <li><a href="https://skyguidehub.com" target="_blank">Back to SkyGuideHub.com</a></li>
-            </ul>
-        </nav>
-
-        <div id="usersSection" class="section tab-content">
-            <h2>Alpha Tester Signups (<span id="userCount">0</span>)</h2>
-            <div style="overflow-x:auto;">
-                <table id="usersTable">
-                    <thead>
-                        <tr>
-                            <th><input type="checkbox" id="selectAllCheckbox" title="Select All"></th>
-                            <th>#</th>
-                            <th>Signed Up At</th>
-                            <th>First Name</th>
-                            <th>Last Name</th>
-                            <th>Email</th>
-                            <th>Airline</th>
-                            <th>Job Title</th>
-                            <th>Crew Base</th>
-                            <th>Agreed to Terms</th>
-                        </tr>
-                    </thead>
-                    <tbody id="usersTableBody">
-                        <tr><td colspan="10" style="text-align:center;">Loading users...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div id="emailSection" class="section tab-content hidden">
-            <h2>Send Mass Email</h2>
-            <label for="secretKey">Mass Email Secret Key:</label>
-            <input type="password" id="secretKey" name="secretKey" value="v9NMOpAOg5">
-            <small>Enter the `MASS_EMAIL_SECRET_KEY` for authorization.</small>
-
-            <label for="subject">Email Subject:</label>
-            <input type="text" id="subject" name="subject" required>
-
-            <label for="htmlBody">HTML Body:</label>
-            <textarea id="htmlBody" name="htmlBody" required></textarea>
-            <small>Enter the full HTML content for the email.</small>
-
-            <label for="textBody">Text Body (Optional):</label>
-            <textarea id="textBody" name="textBody"></textarea>
-            <small>Enter the plain text version of the email. Recommended for compatibility.</small>
-
-            <button onclick="sendMassEmail()">Send Mass Email</button>
-
-            <h3>Response:</h3>
-            <div id="responseArea">Awaiting response...</div>
-        </div>
+    <div style="background-color: limegreen; color: white; padding: 20px; text-align: center; font-size: 24px; font-weight: bold; border-bottom: 5px solid darkgreen; position: sticky; top: 0; z-index: 10000;">
+        *** THIS IS THE CORRECT admin.html PAGE (SkyGuide Admin Console) ***
     </div>
+    <h1>Admin Console</h1>
+    <section>
+        <h2>Registered Users</h2>
+        <table id="signupTable">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="selectAllCheckbox" title="Select All"></th>
+                    <th>No.</th>
+                    <th>Created At</th>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Email</th>
+                    <th>Airline</th>
+                    <th>Job Title</th>
+                    <th>Base</th>
+                    <th>Agreed to Terms</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </section>
+    <section>
+        <h2>Send Mass Email</h2>
+        <div>
+            <input type="password" id="massEmailSecretKey" placeholder="Mass Email Secret Key" style="margin-bottom: 10px; width: calc(100% - 22px); padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+        <div>
+            <input type="text" id="emailSubject" placeholder="Subject">
+        </div>
+        <div>
+            <textarea id="emailMessage" placeholder="Message"></textarea>
+        </div>
+        <button id="sendEmailButton">Send Email</button>
+        <p id="adminMessage" class="form-message"></p>
+    </section>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-        // --- Supabase Client Setup ---
-        const SUPABASE_URL = 'https://ulihpezvwculbmrddjfb.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsaWhwZXp2d2N1bGJtcmRkamZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4MzE2NTEsImV4cCI6MjA2NDQwNzY1MX0.hfxEN4-X9EJM9MnkYFjMjtWZyjXvKRMCWMIShp2infw';
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        // --- Tab Navigation ---
-        function showTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
-            document.getElementById(tabId).classList.remove('hidden');
-            document.querySelectorAll('.tab-link').forEach(link => link.classList.remove('active'));
-            document.querySelector(`a[href="#${tabId}"]`).classList.add('active');
-        }
-
-        // --- Fetch and Display Users ---
-        async function fetchAndDisplayUsers() {
-            const usersTableBody = document.getElementById('usersTableBody');
-            const userCountElement = document.getElementById('userCount');
-            usersTableBody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Loading users...</td></tr>'; 
-
-            try {
-                const { data: users, error } = await supabaseClient
-                    .from('alpha_signups')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-
-                if (error) {
-                    console.error('Error fetching users:', error);
-                    usersTableBody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:red;">Error fetching users: ${error.message}</td></tr>`;
-                    userCountElement.textContent = 'Error';
-                    setupCheckboxListeners(); // Ensure listeners are setup even on error to disable selectAll
-                    return;
-                }
-
-                if (users && users.length > 0) {
-                    userCountElement.textContent = users.length;
-                    usersTableBody.innerHTML = users.map((user, index) => `
-                        <tr data-email="${user.email || ''}">
-                            <td><input type="checkbox" class="user-checkbox" value="${user.email || ''}" ${!(user.email) ? 'disabled title="Email missing"' : 'title="Select this user"'}></td>
-                            <td>${index + 1}</td>
-                            <td>${user.created_at ? new Date(user.created_at).toLocaleString() : 'N/A'}</td>
-                            <td>${user.first_name || 'N/A'}</td>
-                            <td>${user.last_name || 'N/A'}</td>
-                            <td>${user.email || 'N/A'}</td>
-                            <td>${user.airline || 'N/A'}</td>
-                            <td>${user.job_title || 'N/A'}</td>
-                            <td>${user.crew_base || 'N/A'}</td>
-                            <td>${user.agreed_to_terms ? 'Yes' : 'No'}</td>
-                        </tr>
-                    `).join('');
-                } else {
-                    usersTableBody.innerHTML = '<tr><td colspan="10" style="text-align:center;">No users found.</td></tr>';
-                    userCountElement.textContent = '0';
-                }
-                setupCheckboxListeners(); // Call after table is populated or cleared
-            } catch (e) {
-                console.error('Exception fetching users:', e);
-                usersTableBody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:red;">An unexpected error occurred.</td></tr>`;
-                userCountElement.textContent = 'Error';
-                setupCheckboxListeners(); // Ensure listeners are setup even on exception
-            }
-        }
-
-        function setupCheckboxListeners() {
-            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-            const userCheckboxes = document.querySelectorAll('.user-checkbox:not([disabled])'); // Only interact with enabled checkboxes
-
-            if (selectAllCheckbox) {
-                selectAllCheckbox.disabled = userCheckboxes.length === 0;
-                selectAllCheckbox.checked = userCheckboxes.length > 0 && Array.from(userCheckboxes).every(cb => cb.checked);
-
-                selectAllCheckbox.removeEventListener('change', handleSelectAllChange); 
-                selectAllCheckbox.addEventListener('change', handleSelectAllChange);
-            }
-
-            userCheckboxes.forEach(checkbox => {
-                checkbox.removeEventListener('change', handleUserCheckboxChange); 
-                checkbox.addEventListener('change', handleUserCheckboxChange);
-            });
-        }
-
-        function handleSelectAllChange() { 
-            const userCheckboxes = document.querySelectorAll('.user-checkbox:not([disabled])');
-            userCheckboxes.forEach(checkbox => {
-                checkbox.checked = this.checked;
-            });
-        }
-
-        function handleUserCheckboxChange() { 
-            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-            if (selectAllCheckbox) {
-                const userCheckboxes = document.querySelectorAll('.user-checkbox:not([disabled])');
-                if (!this.checked) {
-                    selectAllCheckbox.checked = false;
-                } else {
-                    const allChecked = Array.from(userCheckboxes).every(cb => cb.checked);
-                    selectAllCheckbox.checked = allChecked;
-                }
-            }
-        }
-
-        // --- Mass Email Functionality ---
-                
-
-                
-                    
-                    
-                    
-        
-        async function sendMassEmail() {
-            const secretKeyInput = document.getElementById('secretKey');
-            const subjectInput = document.getElementById('subject');
-            const htmlBodyInput = document.getElementById('htmlBody');
-            const textBodyInput = document.getElementById('textBody');
-            const responseArea = document.getElementById('responseArea');
-
-            const secretKey = secretKeyInput.value;
-            const subject = subjectInput.value;
-            const htmlBody = htmlBodyInput.value;
-            const textBody = textBodyInput.value;
-
-            responseArea.textContent = 'Processing...';
-            responseArea.className = ''; // Reset class
-
-            if (!secretKey || !subject || !htmlBody) {
-                responseArea.textContent = 'Error: Secret Key, Subject, and HTML Body are required.';
-                responseArea.classList.add('error');
-                return;
-            }
-
-            const selectedUserCheckboxes = document.querySelectorAll('.user-checkbox:checked:not([disabled])');
-            const selectedEmails = Array.from(selectedUserCheckboxes).map(cb => cb.value).filter(email => email && email.trim() !== '');
-
-            if (selectedEmails.length === 0) {
-                responseArea.textContent = 'Error: No valid users selected. Please select at least one user with an email address.';
-                responseArea.classList.add('error');
-                alert('No valid users selected. Please select at least one user with an email address.');
-                return;
-            }
-
-            const payload = {
-                subject: subject,
-                html_body: htmlBody,
-                selected_emails: selectedEmails
-            };
-            if (textBody && textBody.trim() !== '') {
-                payload.text_body = textBody;
-            }
-
-            responseArea.textContent = `Sending email to ${selectedEmails.length} user(s)...`;
-
-            try {
-                const { data, error } = await supabaseClient.functions.invoke('send_mass_email', {
-                    body: payload,
-                    headers: { Authorization: `Bearer ${secretKey}` },
-                });
-
-                if (error) {
-                    let errorMessage = `Error sending email: ${error.message}`;
-                    // Attempt to get more details from error.context if available
-                    if (error.context && typeof error.context === 'object' && error.context.message) {
-                        errorMessage += ` (Details: ${error.context.message})`;
-                    } else if (typeof error.context === 'string') {
-                        errorMessage += ` (Details: ${error.context})`;
-                    }
-                    responseArea.textContent = errorMessage;
-                    responseArea.classList.add('error');
-                    console.error('Error invoking send_mass_email:', error);
-                } else {
-                    responseArea.textContent = (data && data.message) ? data.message : `Successfully initiated sending emails to ${selectedEmails.length} user(s).`;
-                    responseArea.classList.add('success');
-                    console.log('send_mass_email response:', data);
-                    // Optionally clear form fields or give other success feedback
-                    // subjectInput.value = '';
-                    // htmlBodyInput.value = '';
-                    // textBodyInput.value = '';
-                }
-            } catch (e) {
-                responseArea.textContent = `An unexpected error occurred: ${e.message}`;
-                responseArea.classList.add('error');
-                console.error('Exception in sendMassEmail:', e);
-            }
-        }
-
-        // --- Initial Load --- 
-        document.addEventListener('DOMContentLoaded', () => {
-            showTab('usersSection'); // Show users tab by default
-            fetchAndDisplayUsers();
-        });
-    </script>
-<!-- Trigger Netlify Build: 2025-06-07T23:06:00-04:00 -->
+    <script src="admin.js"></script>
 </body>
 </html>
