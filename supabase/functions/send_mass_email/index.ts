@@ -25,7 +25,7 @@ let supabaseClient: SupabaseClient | undefined;
 if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
   try {
     supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-  } catch (e) {
+  } catch (e: any) {
     console.error("Error initializing Supabase client:", e.message);
   }
 } else {
@@ -37,7 +37,7 @@ let resend: Resend | undefined;
 if (RESEND_API_KEY) {
   try {
     resend = new Resend(RESEND_API_KEY)
-  } catch (e) {
+  } catch (e: any) {
     console.error("Error initializing Resend client:", e.message);
   }
 } else {
@@ -185,7 +185,7 @@ serve(async (req: Request) => {
     if (!selected_emails || !Array.isArray(selected_emails) || selected_emails.length === 0) {
       throw new Error('Missing or empty selected_emails array in request.');
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error parsing request body:', error.message);
     return new Response(JSON.stringify({ error: 'Bad Request: ' + error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -275,8 +275,10 @@ serve(async (req: Request) => {
     if (!allBatchesSuccessful) {
       console.warn('Some email batches failed to send. Total errors:', errorsEncountered.length);
       return new Response(JSON.stringify({ 
-        message: 'Some emails may not have been sent. Check server logs for details.', 
-        errors: errorsEncountered // Provides more detailed error feedback
+        message: `Email sending partially failed. Successfully sent: ${successfullySentCount}/${totalEmails}. Errors: ${errorsEncountered.length}`, 
+        successfully_sent: successfullySentCount,
+        failed_count: errorsEncountered.length,
+        errors: errorsEncountered 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 207, // Multi-Status
@@ -289,11 +291,11 @@ serve(async (req: Request) => {
       status: 200,
     });
 
-  } catch (error) {
-    console.error('Unexpected error in send_mass_email function:', error);
-    return new Response(JSON.stringify({ error: 'Internal Server Error: ' + (error.message || 'An unknown error occurred') }), {
+  } catch (e: any) {
+    console.error('Unexpected error in send_mass_email function:', e.message, e.stack);
+    return new Response(JSON.stringify({ error: 'Internal Server Error: ' + e.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
-    });
+    })
   }
 })
