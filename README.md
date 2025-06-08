@@ -302,4 +302,5 @@ Once your site is deployed and you have a URL from Netlify/Render:
 - If no `selected_emails` array is provided in the request, the function automatically emails all signups from the `alpha_signups` table.
 - You can optionally include a `text_body` field in the request to provide a plain-text alternative to the HTML content.
 - Ensure the edge function environment has `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `MASS_EMAIL_SECRET_KEY` configured, otherwise requests will fail.
+- When testing locally, place these variables in `supabase/.env` and run `supabase functions serve send_mass_email --env-file supabase/.env` so the function has access to them.
 Good luck with your alpha testing program!

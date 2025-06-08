@@ -16,6 +16,16 @@ const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
 const RESEND_FROM_EMAIL = Deno.env.get('RESEND_FROM_EMAIL')
 const MASS_EMAIL_SECRET_KEY = Deno.env.get('MASS_EMAIL_SECRET_KEY')
 
+const missingEnv: string[] = []
+if (!SUPABASE_URL) missingEnv.push('SUPABASE_URL')
+if (!SUPABASE_SERVICE_ROLE_KEY) missingEnv.push('SUPABASE_SERVICE_ROLE_KEY')
+if (!RESEND_API_KEY) missingEnv.push('RESEND_API_KEY')
+if (!RESEND_FROM_EMAIL) missingEnv.push('RESEND_FROM_EMAIL')
+if (!MASS_EMAIL_SECRET_KEY) missingEnv.push('MASS_EMAIL_SECRET_KEY')
+if (missingEnv.length) {
+  console.warn(`Missing environment variables: ${missingEnv.join(', ')}`)
+}
+
 if (!MASS_EMAIL_SECRET_KEY) {
   console.warn('MASS_EMAIL_SECRET_KEY is not set. Mass email requests will always be rejected.')
 }
@@ -71,9 +81,10 @@ const getFullHtmlContent = (subjectContent: string, bodyContent: string): string
         </div>
         <div class="footer">
             <p>&copy; ${currentYear} SkyGuide. All rights reserved.</p>
-            </div>
-    </div>
-</body>
+  console.log('send_mass_email invoked')
+      return new Response(JSON.stringify({ error: 'Missing RESEND_API_KEY on server.' }), {
+        return new Response(JSON.stringify({ error: 'Missing RESEND_FROM_EMAIL on server.' }), {
+        return new Response(JSON.stringify({ error: 'Supabase credentials missing on server.' }), {
 </html>
   `.trim();
 };
