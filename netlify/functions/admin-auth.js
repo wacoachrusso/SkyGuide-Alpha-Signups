@@ -60,7 +60,7 @@ exports.handler = async (event, context) => {
                 // Path to your actual admin page (admin/index.html)
                 // The function is in netlify/functions/admin-auth.js
                 // So, ../../../admin/index.html should go up to the project root, then into admin/
-                const adminHtmlPath = path.resolve(__dirname, '../../admin.html');
+                const adminHtmlPath = path.resolve('admin.html'); // Test: Attempt to resolve from CWD (project root)
                 const adminHtmlContent = fs.readFileSync(adminHtmlPath, 'utf8');
                 return {
                     statusCode: 200,
