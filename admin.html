@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SkyGuide Admin Console</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="admin-style.css">
 </head>
 <body>
     <h1>Admin Console</h1>
@@ -13,13 +13,16 @@
         <table id="signupTable">
             <thead>
                 <tr>
+                    <th><input type="checkbox" id="selectAllCheckbox" title="Select All"></th>
+                    <th>No.</th>
+                    <th>Created At</th>
                     <th>First Name</th>
                     <th>Last Name</th>
                     <th>Email</th>
                     <th>Airline</th>
                     <th>Job Title</th>
                     <th>Base</th>
-                    <th>Signed Up At</th>
+                    <th>Agreed to Terms</th>
                 </tr>
             </thead>
             <tbody>
@@ -28,6 +31,9 @@
     </section>
     <section>
         <h2>Send Mass Email</h2>
+        <div>
+            <input type="password" id="massEmailSecretKey" placeholder="Mass Email Secret Key" style="margin-bottom: 10px; width: calc(100% - 22px); padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
         <div>
             <input type="text" id="emailSubject" placeholder="Subject">
         </div>

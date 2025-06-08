@@ -50,6 +50,7 @@
             <ul>
                 <li><a href="#usersSection" class="tab-link active" onclick="showTab('usersSection')">View Signups</a></li>
                 <li><a href="#emailSection" class="tab-link" onclick="showTab('emailSection')">Send Mass Email</a></li>
+                <li><a href="https://skyguidehub.com" target="_blank">Back to SkyGuideHub.com</a></li>
             </ul>
         </nav>
 
@@ -59,6 +60,7 @@
                 <table id="usersTable">
                     <thead>
                         <tr>
+                            <th><input type="checkbox" id="selectAllCheckbox" title="Select All"></th>
                             <th>#</th>
                             <th>Signed Up At</th>
                             <th>First Name</th>
@@ -120,7 +122,7 @@
         async function fetchAndDisplayUsers() {
             const usersTableBody = document.getElementById('usersTableBody');
             const userCountElement = document.getElementById('userCount');
-            usersTableBody.innerHTML = '<tr><td colspan="9" style="text-align:center;">Loading users...</td></tr>'; // Reset
+            usersTableBody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Loading users...</td></tr>'; 
 
             try {
                 const { data: users, error } = await supabaseClient
@@ -130,15 +132,17 @@
 
                 if (error) {
                     console.error('Error fetching users:', error);
-                    usersTableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:red;">Error fetching users: ${error.message}</td></tr>`;
+                    usersTableBody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:red;">Error fetching users: ${error.message}</td></tr>`;
                     userCountElement.textContent = 'Error';
+                    setupCheckboxListeners(); // Ensure listeners are setup even on error to disable selectAll
                     return;
                 }
 
                 if (users && users.length > 0) {
                     userCountElement.textContent = users.length;
                     usersTableBody.innerHTML = users.map((user, index) => `
-                        <tr>
+                        <tr data-email="${user.email || ''}">
+                            <td><input type="checkbox" class="user-checkbox" value="${user.email || ''}" ${!(user.email) ? 'disabled title="Email missing"' : 'title="Select this user"'}></td>
                             <td>${index + 1}</td>
                             <td>${user.created_at ? new Date(user.created_at).toLocaleString() : 'N/A'}</td>
                             <td>${user.first_name || 'N/A'}</td>
@@ -151,24 +155,74 @@
                         </tr>
                     `).join('');
                 } else {
-                    usersTableBody.innerHTML = '<tr><td colspan="9" style="text-align:center;">No users found.</td></tr>';
+                    usersTableBody.innerHTML = '<tr><td colspan="10" style="text-align:center;">No users found.</td></tr>';
                     userCountElement.textContent = '0';
                 }
+                setupCheckboxListeners(); // Call after table is populated or cleared
             } catch (e) {
                 console.error('Exception fetching users:', e);
-                usersTableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:red;">An unexpected error occurred.</td></tr>`;
+                usersTableBody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:red;">An unexpected error occurred.</td></tr>`;
                 userCountElement.textContent = 'Error';
+                setupCheckboxListeners(); // Ensure listeners are setup even on exception
+            }
+        }
+
+        function setupCheckboxListeners() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const userCheckboxes = document.querySelectorAll('.user-checkbox:not([disabled])'); // Only interact with enabled checkboxes
+
+            if (selectAllCheckbox) {
+                selectAllCheckbox.disabled = userCheckboxes.length === 0;
+                selectAllCheckbox.checked = userCheckboxes.length > 0 && Array.from(userCheckboxes).every(cb => cb.checked);
+
+                selectAllCheckbox.removeEventListener('change', handleSelectAllChange); 
+                selectAllCheckbox.addEventListener('change', handleSelectAllChange);
+            }
+
+            userCheckboxes.forEach(checkbox => {
+                checkbox.removeEventListener('change', handleUserCheckboxChange); 
+                checkbox.addEventListener('change', handleUserCheckboxChange);
+            });
+        }
+
+        function handleSelectAllChange() { 
+            const userCheckboxes = document.querySelectorAll('.user-checkbox:not([disabled])');
+            userCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        }
+
+        function handleUserCheckboxChange() { 
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            if (selectAllCheckbox) {
+                const userCheckboxes = document.querySelectorAll('.user-checkbox:not([disabled])');
+                if (!this.checked) {
+                    selectAllCheckbox.checked = false;
+                } else {
+                    const allChecked = Array.from(userCheckboxes).every(cb => cb.checked);
+                    selectAllCheckbox.checked = allChecked;
+                }
             }
         }
 
         // --- Mass Email Functionality ---
-        // const massEmailEdgeFunctionUrl = 'https://ulihpezvwculbmrddjfb.supabase.co/functions/v1/send_mass_email'; // Not needed with supabase.functions.invoke
+                
+
+                
+                    
+                    
+        
         async function sendMassEmail() {
-            const secretKey = document.getElementById('secretKey').value;
-            const subject = document.getElementById('subject').value;
-            const htmlBody = document.getElementById('htmlBody').value;
-            const textBody = document.getElementById('textBody').value;
+            const secretKeyInput = document.getElementById('secretKey');
+            const subjectInput = document.getElementById('subject');
+            const htmlBodyInput = document.getElementById('htmlBody');
+            const textBodyInput = document.getElementById('textBody');
             const responseArea = document.getElementById('responseArea');
+
+            const secretKey = secretKeyInput.value;
+            const subject = subjectInput.value;
+            const htmlBody = htmlBodyInput.value;
+            const textBody = textBodyInput.value;
 
             responseArea.textContent = 'Processing...';
             responseArea.className = ''; // Reset class
@@ -179,52 +233,59 @@
                 return;
             }
 
+            const selectedUserCheckboxes = document.querySelectorAll('.user-checkbox:checked:not([disabled])');
+            const selectedEmails = Array.from(selectedUserCheckboxes).map(cb => cb.value).filter(email => email && email.trim() !== '');
+
+            if (selectedEmails.length === 0) {
+                responseArea.textContent = 'Error: No valid users selected. Please select at least one user with an email address.';
+                responseArea.classList.add('error');
+                alert('No valid users selected. Please select at least one user with an email address.');
+                return;
+            }
+
             const payload = {
-                secret_key: secretKey, // Add secret_key to the payload for the Edge Function to verify
                 subject: subject,
                 html_body: htmlBody,
+                selected_emails: selectedEmails
             };
-            if (textBody) {
+            if (textBody && textBody.trim() !== '') {
                 payload.text_body = textBody;
             }
+
+            responseArea.textContent = `Sending email to ${selectedEmails.length} user(s)...`;
 
             try {
                 const { data, error } = await supabaseClient.functions.invoke('send_mass_email', {
                     body: payload,
+                    headers: {
+                        'Authorization': `Bearer ${secretKey}`
+                    }
                 });
 
                 if (error) {
-                    console.error('Error invoking function:', error);
-                    responseArea.textContent = `Error (${error.status || 'Unknown'}):\n${error.message || JSON.stringify(error, null, 2)}`;
-                    responseArea.classList.remove('success');
-                    responseArea.classList.add('error');
-                    // Try to parse if error.context is a stringified JSON
-                    if (error.context && typeof error.context.json === 'function') {
-                        try {
-                            const errorDetails = await error.context.json();
-                            if (errorDetails && errorDetails.error) {
-                                responseArea.textContent += `\nDetails: ${errorDetails.error}`;
-                            }
-                        } catch (parseError) {
-                            console.warn('Could not parse error context as JSON:', parseError);
-                        }
+                    let errorMessage = `Error sending email: ${error.message}`;
+                    // Attempt to get more details from error.context if available
+                    if (error.context && typeof error.context === 'object' && error.context.message) {
+                        errorMessage += ` (Details: ${error.context.message})`;
                     } else if (typeof error.context === 'string') {
-                         responseArea.textContent += `\nDetails: ${error.context}`;
+                        errorMessage += ` (Details: ${error.context})`;
                     }
+                    responseArea.textContent = errorMessage;
+                    responseArea.classList.add('error');
+                    console.error('Error invoking send_mass_email:', error);
                 } else {
-                    console.log('Function invoked successfully:', data);
-                    responseArea.textContent = 'Mass email request sent successfully!\nCheck individual email status if needed.';
-                    if (data && data.message) { // If the function returns a specific success message
-                        responseArea.textContent = data.message;
-                    }
-                    responseArea.classList.remove('error');
+                    responseArea.textContent = (data && data.message) ? data.message : `Successfully initiated sending emails to ${selectedEmails.length} user(s).`;
                     responseArea.classList.add('success');
+                    console.log('send_mass_email response:', data);
+                    // Optionally clear form fields or give other success feedback
+                    // subjectInput.value = '';
+                    // htmlBodyInput.value = '';
+                    // textBodyInput.value = '';
                 }
             } catch (e) {
-                console.error('Exception sending mass email:', e);
                 responseArea.textContent = `An unexpected error occurred: ${e.message}`;
-                responseArea.classList.remove('success');
                 responseArea.classList.add('error');
+                console.error('Exception in sendMassEmail:', e);
             }
         }
 
