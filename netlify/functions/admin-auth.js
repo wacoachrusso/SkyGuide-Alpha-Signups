@@ -57,43 +57,65 @@ exports.handler = async (event, context) => {
 
         if (submittedPassword && submittedPassword === adminPassword) {
             try {
-                // Path to your actual admin page (admin/index.html)
-                // The function is in netlify/functions/admin-auth.js
-                // So, ../../../admin/index.html should go up to the project root, then into admin/
-                let adminHtmlContent = '';
-                let successfullyReadPreferredFile = false;
+                let adminHtmlContentToServe = '';
+                let preferredPathTried = '';
+                let fallbackPathTried = '';
+                let specificReadError = null;
 
                 try {
                     const preferredAdminHtmlPath = path.resolve('admin.html');
+                    preferredPathTried = preferredAdminHtmlPath;
                     console.log('Attempting to read preferred admin file:', preferredAdminHtmlPath);
-                    adminHtmlContent = fs.readFileSync(preferredAdminHtmlPath, 'utf8');
-                    successfullyReadPreferredFile = true;
+                    adminHtmlContentToServe = fs.readFileSync(preferredAdminHtmlPath, 'utf8');
                     console.log('Successfully read preferred admin.html');
                 } catch (readError) {
-                    console.error('Failed to read preferred admin.html:', readError);
-                    // Fallback to try reading the other admin page for diagnostics
+                    console.error('Failed to read preferred admin.html:', preferredPathTried, readError);
+                    specificReadError = readError; // Save the first error
+
+                    // Fallback to try reading the other admin page
                     try {
-                        const fallbackAdminHtmlPath = path.resolve('_admin_content/index.html'); // Assuming it's at root/_admin_content/
+                        const fallbackAdminHtmlPath = path.resolve('_admin_content/index.html');
+                        fallbackPathTried = fallbackAdminHtmlPath;
                         console.log('Attempting to read fallback _admin_content/index.html:', fallbackAdminHtmlPath);
-                        adminHtmlContent = fs.readFileSync(fallbackAdminHtmlPath, 'utf8');
+                        adminHtmlContentToServe = fs.readFileSync(fallbackAdminHtmlPath, 'utf8');
                         console.log('Successfully read fallback _admin_content/index.html. THIS IS NOT THE INTENDED FILE.');
+                        
+                        const diagnosticHeader = `
+                            <div style="background-color: #ffdddd; border: 1px solid #ff0000; color: #d8000c; padding: 15px; margin-bottom: 20px; text-align: left; font-family: monospace; font-size: 14px; position: sticky; top: 0; z-index: 9999;">
+                                <strong>DIAGNOSTIC INFO:</strong> Displaying fallback admin page because the preferred page could not be loaded.<br>
+                                Intended page: admin.html<br>
+                                Attempted path for admin.html: ${preferredPathTried || 'Not attempted'}<br>
+                                Error reading admin.html: ${specificReadError ? specificReadError.toString().replace(/</g, '&lt;').replace(/>/g, '&gt;') : 'N/A'}<br>
+                                Currently displaying: _admin_content/index.html (Path: ${fallbackPathTried || 'Not attempted'})
+                            </div>`;
+                        adminHtmlContentToServe = diagnosticHeader + adminHtmlContentToServe;
+
                     } catch (fallbackReadError) {
-                        console.error('Failed to read fallback _admin_content/index.html as well:', fallbackReadError);
-                        throw new Error('Neither admin page could be read.'); // This will be caught by the outer catch block
+                        console.error('Failed to read fallback _admin_content/index.html as well:', fallbackPathTried, fallbackReadError);
+                        // Construct a detailed error message if both fail
+                        let combinedErrorMessage = `Neither admin page could be read.\
+Preferred path ('admin.html'): ${preferredPathTried || 'Not attempted'}. Error: ${specificReadError ? specificReadError.toString() : 'N/A'}.\
+Fallback path ('_admin_content/index.html'): ${fallbackPathTried || 'Not attempted'}. Error: ${fallbackReadError.toString()}`;
+                        throw new Error(combinedErrorMessage);
                     }
                 }
 
                 return {
                     statusCode: 200,
                     headers: { 'Content-Type': 'text/html' },
-                    body: adminHtmlContent, // Will be either preferred or fallback, or outer catch if both fail
+                    body: adminHtmlContentToServe,
                 };
-            } catch (error) {
-                console.error("Error reading admin page:", error);
+
+            } catch (error) { // This is the outer catch for critical errors or if both reads fail
+                console.error("Critical error serving admin page:", error);
+                const detailedErrorMessage = (error.message || "Could not load admin page.").replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
                 return {
                     statusCode: 500,
                     headers: { 'Content-Type': 'text/html' },
-                    body: "<h1>Internal Server Error</h1><p>Could not load admin page. Check function logs in Netlify.</p>",
+                    body: `<h1>Internal Server Error</h1>
+                           <p>Could not load the admin page. Details below:</p>
+                           <p style="color:red; font-family:monospace; border:1px solid red; padding:10px; background-color:#ffebeb;"><strong>Error Details:</strong><br>${detailedErrorMessage}</p>
+                           <p>Please check the Netlify function logs for more context if possible.</p>`,
                 };
             }
         } else {
