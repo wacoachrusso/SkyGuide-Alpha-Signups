@@ -1,4 +1,3 @@
-// Edge Function to send mass email notifications using Resend and Supabase.
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { Resend } from 'https://esm.sh/resend@3.2.0'
@@ -41,7 +40,7 @@ if (RESEND_API_KEY) {
 const getFullHtmlContent = (subjectContent: string, bodyContent: string): string => {
   const currentYear = new Date().getFullYear();
   const logoUrl = "https://res.cloudinary.com/skyguide/image/upload/v1717789869/skyguide_logo_standard_resolution_color_trans_bkgd_x9x5k9.png";
-  
+
   // Ensure bodyContent is treated as HTML. If it might contain characters that break HTML, sanitize/escape appropriately.
   // For now, assuming html_body from admin panel is intended as safe HTML.
   return `
@@ -72,8 +71,7 @@ const getFullHtmlContent = (subjectContent: string, bodyContent: string): string
         </div>
         <div class="footer">
             <p>&copy; ${currentYear} SkyGuide. All rights reserved.</p>
-            <!-- Consider adding an unsubscribe link mechanism if legally required or for best practice -->
-        </div>
+            </div>
     </div>
 </body>
 </html>
