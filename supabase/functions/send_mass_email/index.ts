@@ -127,7 +127,7 @@ serve(async (req: Request) => {
       })
     }
 
-    const { subject, html_body, selected_emails } = body;
+    const { subject, html_body, text_body, selected_emails } = body;
 
     if (!subject || !html_body) {
       return new Response(JSON.stringify({ error: 'Missing subject or html_body in request.' }), {
@@ -171,6 +171,7 @@ serve(async (req: Request) => {
 
     console.log(`Processing mass email. Subject: "${subject}". To ${recipients.length} users.`);
     const finalHtmlContent = getFullHtmlContent(subject, html_body);
+    const textContent = typeof text_body === 'string' && text_body.trim().length > 0 ? text_body.trim() : undefined;
     
     let allBatchesSuccessful = true;
     const errorsEncountered: { email: string, error: string }[] = [];
@@ -185,6 +186,7 @@ serve(async (req: Request) => {
                 to: batchEmails,
                 subject: subject, // Resend API requires subject here, even if it's in HTML
                 html: finalHtmlContent,
+                ...(textContent ? { text: textContent } : {}),
             });
 
             if (sendError) {
