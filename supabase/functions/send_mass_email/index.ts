@@ -16,6 +16,10 @@ const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
 const RESEND_FROM_EMAIL = Deno.env.get('RESEND_FROM_EMAIL')
 const MASS_EMAIL_SECRET_KEY = Deno.env.get('MASS_EMAIL_SECRET_KEY')
 
+if (!MASS_EMAIL_SECRET_KEY) {
+  console.warn('MASS_EMAIL_SECRET_KEY is not set. Mass email requests will always be rejected.')
+}
+
 // Initialize Supabase client (optional if not directly used, but good practice)
 let supabaseClient: SupabaseClient
 if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
@@ -36,7 +40,7 @@ if (RESEND_API_KEY) {
 const getFullHtmlContent = (subjectContent: string, bodyContent: string): string => {
   const currentYear = new Date().getFullYear();
   const logoUrl = "https://res.cloudinary.com/skyguide/image/upload/v1717789869/skyguide_logo_standard_resolution_color_trans_bkgd_x9x5k9.png";
-  
+
   // Ensure bodyContent is treated as HTML. If it might contain characters that break HTML, sanitize/escape appropriately.
   // For now, assuming html_body from admin panel is intended as safe HTML.
   return `
@@ -67,8 +71,7 @@ const getFullHtmlContent = (subjectContent: string, bodyContent: string): string
         </div>
         <div class="footer">
             <p>&copy; ${currentYear} SkyGuide. All rights reserved.</p>
-            <!-- Consider adding an unsubscribe link mechanism if legally required or for best practice -->
-        </div>
+            </div>
     </div>
 </body>
 </html>
@@ -81,9 +84,19 @@ serve(async (req: Request) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader || !MASS_EMAIL_SECRET_KEY || authHeader !== `Bearer ${MASS_EMAIL_SECRET_KEY}`) {
-      console.warn('Unauthorized attempt to send mass email.');
+    let body: any = {}
+    let parseError = false
+    try {
+      body = await req.json()
+    } catch (_) {
+      parseError = true
+    }
+
+    const headerToken = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '')
+    const providedSecret = headerToken || body.secret_key
+
+    if (!providedSecret || !MASS_EMAIL_SECRET_KEY || providedSecret !== MASS_EMAIL_SECRET_KEY) {
+      console.warn('Unauthorized attempt to send mass email.')
       return new Response(JSON.stringify({ error: 'Unauthorized: Missing or invalid secret key.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
@@ -105,41 +118,66 @@ serve(async (req: Request) => {
         });
     }
 
-    let body: any;
-    try {
-        body = await req.json();
-    } catch (e) {
-        console.error('Error parsing request body:', e.message);
-        return new Response(JSON.stringify({ error: 'Invalid JSON in request body.' }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400, // Bad Request
-        });
-    }
-    
-    const { subject, html_body, selected_emails } = body;
-
-    if (!subject || !html_body || !selected_emails) {
-      return new Response(JSON.stringify({ error: 'Missing subject, html_body, or selected_emails in request.' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      })
-    }
-    if (!Array.isArray(selected_emails) || selected_emails.length === 0) {
-      return new Response(JSON.stringify({ error: 'selected_emails must be a non-empty array.' }), {
+    if (parseError || !body || typeof body !== 'object') {
+      console.error('Error parsing request body.')
+      return new Response(JSON.stringify({ error: 'Invalid JSON in request body.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       })
     }
 
-    console.log(`Processing mass email. Subject: "${subject}". To ${selected_emails.length} users.`);
+    const { subject, html_body, text_body, selected_emails } = body;
+
+    if (!subject || !html_body) {
+      return new Response(JSON.stringify({ error: 'Missing subject or html_body in request.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      })
+    }
+    let recipients: string[] = []
+    if (Array.isArray(selected_emails) && selected_emails.length > 0) {
+      recipients = selected_emails
+    } else {
+      // Fetch all signups if no specific recipients provided
+      if (!supabaseClient) {
+        console.error('Supabase client not initialized. Cannot fetch recipients.')
+        return new Response(JSON.stringify({ error: 'Server configuration error.' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        })
+      }
+      const { data: signupRows, error: fetchError } = await supabaseClient
+        .from('alpha_signups')
+        .select('email')
+
+      if (fetchError) {
+        console.error('Error fetching signup emails:', fetchError)
+        return new Response(JSON.stringify({ error: 'Failed to retrieve recipient emails.' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        })
+      }
+
+      recipients = (signupRows ?? []).map((row: any) => row.email).filter((e: string) => !!e)
+    }
+
+    if (recipients.length === 0) {
+      return new Response(JSON.stringify({ error: 'No recipient emails found.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      })
+    }
+
+    console.log(`Processing mass email. Subject: "${subject}". To ${recipients.length} users.`);
     const finalHtmlContent = getFullHtmlContent(subject, html_body);
+    const textContent = typeof text_body === 'string' && text_body.trim().length > 0 ? text_body.trim() : undefined;
     
     let allBatchesSuccessful = true;
     const errorsEncountered: { email: string, error: string }[] = [];
     const BATCH_SIZE = 45; // Resend API limit is 50 per call in 'to' array.
 
-    for (let i = 0; i < selected_emails.length; i += BATCH_SIZE) {
-        const batchEmails = selected_emails.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+        const batchEmails = recipients.slice(i, i + BATCH_SIZE);
         console.log(`Sending batch of ${batchEmails.length} emails. First email in batch: ${batchEmails[0]}`);
         try {
             const { data: sendData, error: sendError } = await resend.emails.send({
@@ -147,6 +185,7 @@ serve(async (req: Request) => {
                 to: batchEmails,
                 subject: subject, // Resend API requires subject here, even if it's in HTML
                 html: finalHtmlContent,
+                ...(textContent ? { text: textContent } : {}),
             });
 
             if (sendError) {

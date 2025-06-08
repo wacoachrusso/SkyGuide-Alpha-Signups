@@ -180,7 +180,6 @@
             }
 
             const payload = {
-                secret_key: secretKey, // Add secret_key to the payload for the Edge Function to verify
                 subject: subject,
                 html_body: htmlBody,
             };
@@ -191,6 +190,7 @@
             try {
                 const { data, error } = await supabaseClient.functions.invoke('send_mass_email', {
                     body: payload,
+                    headers: { Authorization: `Bearer ${secretKey}` },
                 });
 
                 if (error) {
