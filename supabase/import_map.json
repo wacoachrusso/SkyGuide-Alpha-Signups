@@ -1,0 +1,8 @@
+{
+  "imports": {
+    "std/": "https://deno.land/std@0.208.0/",
+    "supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.0",
+    "resend-js": "https://esm.sh/resend@2.0.0",
+    "cors": "https://deno.land/x/cors@v1.2.2/mod.ts"
+  }
+}

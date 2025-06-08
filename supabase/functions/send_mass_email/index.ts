@@ -20,29 +20,60 @@ if (!MASS_EMAIL_SECRET_KEY) {
   console.warn('MASS_EMAIL_SECRET_KEY is not set. Mass email requests will always be rejected.')
 }
 
-// Initialize Supabase client (optional if not directly used, but good practice)
-let supabaseClient: SupabaseClient
+// Initialize Supabase client
+let supabaseClient: SupabaseClient | undefined;
 if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
-  supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+  try {
+    supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+  } catch (e: any) {
+    console.error("Error initializing Supabase client:", e.message);
+  }
 } else {
   console.warn('Missing Supabase URL or Service Role Key environment variables. Supabase client not initialized.')
 }
 
 // Initialize Resend client
-let resend: Resend
+let resend: Resend | undefined;
 if (RESEND_API_KEY) {
-  resend = new Resend(RESEND_API_KEY)
+  try {
+    resend = new Resend(RESEND_API_KEY)
+  } catch (e: any) {
+    console.error("Error initializing Resend client:", e.message);
+  }
 } else {
   console.error('CRITICAL: Missing RESEND_API_KEY environment variable. Resend client not initialized.')
 }
 
+const BATCH_SIZE = 45; // Resend API limit is 50 per call in 'to' array. Keep it slightly lower.
+
 // --- HTML Email Template Function ---
 const getFullHtmlContent = (subjectContent: string, bodyContent: string): string => {
   const currentYear = new Date().getFullYear();
-  const logoUrl = "https://res.cloudinary.com/skyguide/image/upload/v1717789869/skyguide_logo_standard_resolution_color_trans_bkgd_x9x5k9.png";
+  const logoUrl = "https://res.cloudinary.com/skyguide/image/upload/v1717789869/skyguide_logo_standard_resolution_color_trans_bkgd_x9x5k9.png"; // SkyGuide Production Logo
 
-  // Ensure bodyContent is treated as HTML. If it might contain characters that break HTML, sanitize/escape appropriately.
-  // For now, assuming html_body from admin panel is intended as safe HTML.
+  // Convert user's plain text (from html_body input) to simple HTML paragraphs
+  let formattedHtmlBodyContent: string;
+  if (bodyContent && bodyContent.trim() !== '') {
+      const escapeHtml = (unsafe: string) => 
+          unsafe
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;")
+              .replace(/'/g, "&#039;");
+
+      const escapedText = escapeHtml(bodyContent);
+
+      formattedHtmlBodyContent = escapedText
+          .split(/\n\s*\n/) 
+          .map(paragraph => paragraph.trim()) 
+          .filter(paragraph => paragraph.length > 0) 
+          .map(paragraph => `<p style="margin: 0 0 15px 0; color: #333333; font-size: 16px; line-height: 1.6;">${paragraph.replace(/\n/g, '<br>')}</p>`)
+          .join('\n');
+  } else {
+      formattedHtmlBodyContent = '<p style="margin: 0 0 15px 0; color: #333333; font-size: 16px; line-height: 1.6;">(No message content was provided.)</p>'; 
+  }
+
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -51,27 +82,31 @@ const getFullHtmlContent = (subjectContent: string, bodyContent: string): string
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${subjectContent}</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; color: #333333; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-        .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        .header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #eeeeee; }
-        .header img { max-width: 200px; height: auto; margin-bottom: 15px; }
-        .content { padding: 20px 0; color: #333333; line-height: 1.6; font-size: 16px; }
-        .content h2 { color: #2c3e50; margin-top: 0; font-size: 1.5em; }
-        .footer { text-align: center; padding-top: 20px; border-top: 1px solid #eeeeee; font-size: 0.9em; color: #777777; }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; color: #333333; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        .email-container { max-width: 600px; margin: 20px auto; background-color: #ffffff; padding: 0; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; border-top: 5px solid #003366; }
+        .header { text-align: center; padding: 30px 20px 20px 20px; }
+        .header img { max-width: 180px; height: auto; margin-bottom: 10px; }
+        .content-title { font-size: 22px; color: #003366; margin: 0 0 20px 0; font-weight: bold; text-align: center; }
+        .content { padding: 10px 30px 30px 30px; color: #333333; line-height: 1.6; font-size: 16px; }
+        .content p { margin: 0 0 15px 0; }
+        .footer { text-align: center; padding: 20px 30px; background-color: #EAEAEA; font-size: 12px; color: #555555; line-height: 1.5; }
+        .footer p { margin: 0 0 5px 0; }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="email-container">
         <div class="header">
             <img src="${logoUrl}" alt="SkyGuide Logo">
-            <h2>${subjectContent}</h2>
+            <h1 class="content-title">${subjectContent}</h1>
         </div>
         <div class="content">
-            ${bodyContent}
+            ${formattedHtmlBodyContent}
+            <p style="margin-top: 30px;">Best regards,<br>The SkyGuide Team</p>
         </div>
         <div class="footer">
             <p>&copy; ${currentYear} SkyGuide. All rights reserved.</p>
-            </div>
+            <p>SkyGuide Alpha Program</p>
+        </div>
     </div>
 </body>
 </html>
@@ -83,130 +118,149 @@ serve(async (req: Request) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  try {
-    let body: any = {}
-    let parseError = false
-    try {
-      body = await req.json()
-    } catch (_) {
-      parseError = true
-    }
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 405,
+    })
+  }
 
-    const headerToken = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '')
-    const providedSecret = headerToken || body.secret_key
+  // --- Authorization ---
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader || !MASS_EMAIL_SECRET_KEY || authHeader !== `Bearer ${MASS_EMAIL_SECRET_KEY}`) {
+    console.warn('Unauthorized attempt to send mass email.');
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 401,
+    })
+  }
 
-    if (!providedSecret || !MASS_EMAIL_SECRET_KEY || providedSecret !== MASS_EMAIL_SECRET_KEY) {
-      console.warn('Unauthorized attempt to send mass email.')
-      return new Response(JSON.stringify({ error: 'Unauthorized: Missing or invalid secret key.' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401,
-      })
-    }
-
-    if (!resend) {
-      console.error('Resend client not initialized. Cannot send emails. Check RESEND_API_KEY.');
-      return new Response(JSON.stringify({ error: 'Server configuration error: Email service not available.' }), {
+  // --- Ensure clients are initialized ---
+  if (!resend) { // supabaseClient is optional for this specific function if not fetching emails
+    console.error('Resend client not initialized due to missing RESEND_API_KEY.');
+    return new Response(JSON.stringify({ error: 'Server configuration error: Email service unavailable.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 503, // Service Unavailable
-      });
-    }
-    if (!RESEND_FROM_EMAIL) {
-        console.error('RESEND_FROM_EMAIL environment variable is not set.');
-        return new Response(JSON.stringify({ error: 'Server configuration error: From email not set.' }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 500,
-        });
-    }
-
-    if (parseError || !body || typeof body !== 'object') {
-      console.error('Error parsing request body.')
-      return new Response(JSON.stringify({ error: 'Invalid JSON in request body.' }), {
+    });
+  }
+  if (!RESEND_FROM_EMAIL) {
+    console.error('RESEND_FROM_EMAIL environment variable is not set.');
+    return new Response(JSON.stringify({ error: 'Server configuration error: Missing sender email.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      })
-    }
+        status: 500,
+    });
+  }
 
-    const { subject, html_body, text_body, selected_emails } = body;
+  // --- Parse Request Body ---
+  let subject: string;
+  let html_body: string; // This is the user-provided "plain text" or simple markup
+  let text_body: string | undefined;
+  let selected_emails: string[];
+
+  try {
+    const body = await req.json();
+    subject = body.subject;
+    html_body = body.html_body;
+    text_body = body.text_body; 
+    selected_emails = body.selected_emails;
 
     if (!subject || !html_body) {
-      return new Response(JSON.stringify({ error: 'Missing subject or html_body in request.' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      })
+      throw new Error('Missing subject or html_body in request.');
     }
-    let recipients: string[] = []
-    if (Array.isArray(selected_emails) && selected_emails.length > 0) {
-      recipients = selected_emails
-    } else {
-      // Fetch all signups if no specific recipients provided
-      if (!supabaseClient) {
-        console.error('Supabase client not initialized. Cannot fetch recipients.')
-        return new Response(JSON.stringify({ error: 'Server configuration error.' }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500,
-        })
-      }
-      const { data: signupRows, error: fetchError } = await supabaseClient
-        .from('alpha_signups')
-        .select('email')
-
-      if (fetchError) {
-        console.error('Error fetching signup emails:', fetchError)
-        return new Response(JSON.stringify({ error: 'Failed to retrieve recipient emails.' }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500,
-        })
-      }
-
-      recipients = (signupRows ?? []).map((row: any) => row.email).filter((e: string) => !!e)
+    if (!selected_emails || !Array.isArray(selected_emails) || selected_emails.length === 0) {
+      throw new Error('Missing or empty selected_emails array in request.');
     }
+  } catch (error: any) {
+    console.error('Error parsing request body:', error.message);
+    return new Response(JSON.stringify({ error: 'Bad Request: ' + error.message }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 400,
+    });
+  }
 
-    if (recipients.length === 0) {
-      return new Response(JSON.stringify({ error: 'No recipient emails found.' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      })
-    }
+  const recipientEmails = selected_emails.map(email => String(email).trim()).filter(email => email && email.includes('@'));
 
-    console.log(`Processing mass email. Subject: "${subject}". To ${recipients.length} users.`);
+  if (recipientEmails.length === 0) {
+    console.log('No valid recipient emails provided in selected_emails.');
+    return new Response(JSON.stringify({ message: 'No valid recipient emails provided.' }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 400,
+    });
+  }
+
+  console.log(`Mass email requested for ${recipientEmails.length} selected recipients. Subject: "${subject}"`);
+
+  try {
     const finalHtmlContent = getFullHtmlContent(subject, html_body);
-    const textContent = typeof text_body === 'string' && text_body.trim().length > 0 ? text_body.trim() : undefined;
-    
-    let allBatchesSuccessful = true;
-    const errorsEncountered: { email: string, error: string }[] = [];
-    const BATCH_SIZE = 45; // Resend API limit is 50 per call in 'to' array.
+    let finalPlainTextBody = text_body; // Use provided text_body if available
 
-    for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
-        const batchEmails = recipients.slice(i, i + BATCH_SIZE);
-        console.log(`Sending batch of ${batchEmails.length} emails. First email in batch: ${batchEmails[0]}`);
-        try {
-            const { data: sendData, error: sendError } = await resend.emails.send({
-                from: RESEND_FROM_EMAIL,
-                to: batchEmails,
-                subject: subject, // Resend API requires subject here, even if it's in HTML
-                html: finalHtmlContent,
-                ...(textContent ? { text: textContent } : {}),
+    // If text_body is not provided, generate a simple one from html_body
+    if (!finalPlainTextBody && html_body) {
+        // Basic conversion: strip HTML tags and decode entities for plain text
+        const stripHtml = (html: string) => html.replace(/<[^>]*>?/gm, '');
+        const decodeEntities = (encodedString: string) => {
+            const translate_re = /&(nbsp|amp|quot|lt|gt);/g;
+            const translate: { [key: string]: string } = {
+                "nbsp":" ",
+                "amp" : "&",
+                "quot": "\"",
+                "lt"  : "<",
+                "gt"  : ">"
+            };
+            return encodedString.replace(translate_re, function(match, entity) {
+                return translate[entity];
+            }).replace(/&#(\d+);/gi, function(match, numStr) {
+                var num = parseInt(numStr, 10);
+                return String.fromCharCode(num);
             });
+        };
+        finalPlainTextBody = decodeEntities(stripHtml(html_body.replace(/<br\s*\/?>/gi, '\n').replace(/<p[^>]*>/gi, '').replace(/<\/p>/gi, '\n\n'))).trim();
+    }
 
-            if (sendError) {
-                console.error(`Error sending email batch starting with ${batchEmails[0]}:`, sendError);
-                batchEmails.forEach(email => errorsEncountered.push({ email, error: sendError.message || 'Unknown Resend error' }));
-                allBatchesSuccessful = false;
-            } else {
-                console.log(`Email batch sent successfully, ID: ${sendData?.id}. First email: ${batchEmails[0]}`);
-            }
-        } catch (batchError) {
-            console.error(`Exception during email batch sending (first email: ${batchEmails[0]}):`, batchError);
-            batchEmails.forEach(email => errorsEncountered.push({ email, error: batchError.message || 'Unknown exception' }));
-            allBatchesSuccessful = false;
+
+    // --- Send Emails in Batches --- 
+    const totalEmails = recipientEmails.length;
+    let successfullySentCount = 0;
+    let errorsEncountered: { email: string; error: string }[] = [];
+    let allBatchesSuccessful = true;
+
+    console.log(`Starting to send emails in batches of ${BATCH_SIZE}. Total recipients: ${totalEmails}`);
+
+    for (let i = 0; i < totalEmails; i += BATCH_SIZE) {
+      const batch = recipientEmails.slice(i, i + BATCH_SIZE);
+      console.log(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1}: ${batch.length} emails.`);
+
+      try {
+        const { data, error } = await resend.emails.send({
+          from: RESEND_FROM_EMAIL!, // Already checked for null
+          to: batch, 
+          subject: subject,
+          html: finalHtmlContent,
+          text: finalPlainTextBody, 
+        });
+
+        if (error) {
+          console.error(`Error sending batch ${Math.floor(i / BATCH_SIZE) + 1}: Resend API error:`, JSON.stringify(error, null, 2));
+          batch.forEach(email => errorsEncountered.push({ email, error: error.message || 'Unknown Resend API error' }));
+          allBatchesSuccessful = false;
+        } else {
+          console.log(`Batch ${Math.floor(i / BATCH_SIZE) + 1} sent successfully. Response ID: ${data?.id}`);
+          successfullySentCount += batch.length; 
         }
+      } catch (batchError: any) {
+            console.error(`Exception during email batch sending (first email: ${batch[0]}):`, batchError);
+            batch.forEach(email => errorsEncountered.push({ email, error: batchError.message || 'Unknown exception' }));
+            allBatchesSuccessful = false;
+      }
     }
     
     if (!allBatchesSuccessful) {
       console.warn('Some email batches failed to send. Total errors:', errorsEncountered.length);
       return new Response(JSON.stringify({ 
-        message: 'Some emails may not have been sent. Check server logs for details.', 
-        errors: errorsEncountered // Provides more detailed error feedback
+        message: `Email sending partially failed. Successfully sent: ${successfullySentCount}/${totalEmails}. Errors: ${errorsEncountered.length}`, 
+        successfully_sent: successfullySentCount,
+        failed_count: errorsEncountered.length,
+        errors: errorsEncountered 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 207, // Multi-Status
@@ -219,11 +273,11 @@ serve(async (req: Request) => {
       status: 200,
     });
 
-  } catch (error) {
-    console.error('Unexpected error in send_mass_email function:', error);
-    return new Response(JSON.stringify({ error: 'Internal Server Error: ' + (error.message || 'An unknown error occurred') }), {
+  } catch (e: any) {
+    console.error('Unexpected error in send_mass_email function:', e.message, e.stack);
+    return new Response(JSON.stringify({ error: 'Internal Server Error: ' + e.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
-    });
+    })
   }
 })
