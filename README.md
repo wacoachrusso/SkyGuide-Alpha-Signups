@@ -298,5 +298,5 @@ Once your site is deployed and you have a URL from Netlify/Render:
 - **Error Handling:** The `script.js` includes basic error handling. Enhance as needed.
 - **Mobile Responsiveness:** The `style.css` includes basic media queries. Test thoroughly on different devices and refine.
 
-- The admin console (`admin.html`) lets you view all signups and send mass emails via the `send_mass_email` edge function.
+- The admin console (`admin.html`) lets you view all signups and send mass emails via the `send_mass_email` edge function. The request must include an `Authorization: Bearer <MASS_EMAIL_SECRET_KEY>` header.
 Good luck with your alpha testing program!

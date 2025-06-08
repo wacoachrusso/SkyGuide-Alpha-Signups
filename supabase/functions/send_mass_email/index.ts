@@ -81,9 +81,19 @@ serve(async (req: Request) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader || !MASS_EMAIL_SECRET_KEY || authHeader !== `Bearer ${MASS_EMAIL_SECRET_KEY}`) {
-      console.warn('Unauthorized attempt to send mass email.');
+    let body: any = {}
+    let parseError = false
+    try {
+      body = await req.json()
+    } catch (_) {
+      parseError = true
+    }
+
+    const headerToken = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '')
+    const providedSecret = headerToken || body.secret_key
+
+    if (!providedSecret || !MASS_EMAIL_SECRET_KEY || providedSecret !== MASS_EMAIL_SECRET_KEY) {
+      console.warn('Unauthorized attempt to send mass email.')
       return new Response(JSON.stringify({ error: 'Unauthorized: Missing or invalid secret key.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
@@ -105,17 +115,14 @@ serve(async (req: Request) => {
         });
     }
 
-    let body: any;
-    try {
-        body = await req.json();
-    } catch (e) {
-        console.error('Error parsing request body:', e.message);
-        return new Response(JSON.stringify({ error: 'Invalid JSON in request body.' }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400, // Bad Request
-        });
+    if (parseError || !body || typeof body !== 'object') {
+      console.error('Error parsing request body.')
+      return new Response(JSON.stringify({ error: 'Invalid JSON in request body.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      })
     }
-    
+
     const { subject, html_body, selected_emails } = body;
 
     if (!subject || !html_body || !selected_emails) {
