@@ -16,6 +16,10 @@ const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
 const RESEND_FROM_EMAIL = Deno.env.get('RESEND_FROM_EMAIL')
 const MASS_EMAIL_SECRET_KEY = Deno.env.get('MASS_EMAIL_SECRET_KEY')
 
+if (!MASS_EMAIL_SECRET_KEY) {
+  console.warn('MASS_EMAIL_SECRET_KEY is not set. Mass email requests will always be rejected.')
+}
+
 // Initialize Supabase client (optional if not directly used, but good practice)
 let supabaseClient: SupabaseClient
 if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
