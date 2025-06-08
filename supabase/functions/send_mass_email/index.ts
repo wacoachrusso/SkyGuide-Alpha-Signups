@@ -1,3 +1,4 @@
+// Edge Function to send mass email notifications using Resend and Supabase.
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { Resend } from 'https://esm.sh/resend@3.2.0'
